@@ -1,6 +1,8 @@
 import React from 'react';
 import consultoresImg from '../../../assets/Consultores.png';
-import fondoFrase from '../../../assets/FONDO FRASE.mp4';
+
+// Video referenced by static path (uploaded directly to Hostinger)
+const fondoFrase = '/assets/FONDO FRASE.mp4';
 
 const ParallaxBreak: React.FC = () => {
   return (

@@ -1,7 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { HERO_SLIDES, parseHighlight } from '../data';
-import fondoHero from '../../../assets/FONDO HERO.mp4';
-import videoWebDL from '../../../assets/VIDEO WEB DL.mp4';
+
+// Videos referenced by static path (uploaded directly to Hostinger)
+const fondoHero = '/assets/FONDO HERO.mp4';
+const videoWebDL = '/assets/VIDEO WEB DL.mp4';
 
 interface HeroProps {
   scrollTo: (id: string) => void;
