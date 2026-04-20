@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { HERO_SLIDES, parseHighlight } from '../data';
 import fondoHero from '../../../assets/FONDO HERO.mp4';
+import videoWebDL from '../../../assets/VIDEO WEB DL.mp4';
 
 interface HeroProps {
   scrollTo: (id: string) => void;
@@ -10,6 +11,24 @@ const Hero: React.FC<HeroProps> = ({ scrollTo }) => {
   const [current, setCurrent] = useState(0);
   const [visible, setVisible] = useState(true);
   const [videoModalOpen, setVideoModalOpen] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [previewMuted, setPreviewMuted] = useState(false);
+  const modalVideoRef = useRef<HTMLVideoElement>(null);
+  const previewVideoRef = useRef<HTMLVideoElement>(null);
+
+  // Try to play with sound on load
+  useEffect(() => {
+    const video = previewVideoRef.current;
+    if (video) {
+      video.muted = false;
+      video.play().catch(() => {
+        // Browser blocked autoplay with sound, fallback to muted
+        video.muted = true;
+        setPreviewMuted(true);
+        video.play();
+      });
+    }
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -25,7 +44,7 @@ const Hero: React.FC<HeroProps> = ({ scrollTo }) => {
   // Close modal on Escape key
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setVideoModalOpen(false);
+      if (e.key === 'Escape') closeModal();
     };
     if (videoModalOpen) {
       document.addEventListener('keydown', handleEsc);
@@ -36,6 +55,47 @@ const Hero: React.FC<HeroProps> = ({ scrollTo }) => {
       document.body.style.overflow = '';
     };
   }, [videoModalOpen]);
+
+  // Auto-play modal video when opened, mute preview
+  useEffect(() => {
+    if (videoModalOpen) {
+      if (modalVideoRef.current) {
+        modalVideoRef.current.play();
+        setIsPlaying(true);
+      }
+      if (previewVideoRef.current) {
+        previewVideoRef.current.muted = true;
+        setPreviewMuted(true);
+      }
+    }
+  }, [videoModalOpen]);
+
+  const closeModal = () => {
+    if (modalVideoRef.current) {
+      modalVideoRef.current.pause();
+    }
+    setVideoModalOpen(false);
+    setIsPlaying(true);
+  };
+
+  const togglePlay = () => {
+    if (modalVideoRef.current) {
+      if (isPlaying) {
+        modalVideoRef.current.pause();
+      } else {
+        modalVideoRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  const togglePreviewMute = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (previewVideoRef.current) {
+      previewVideoRef.current.muted = !previewVideoRef.current.muted;
+      setPreviewMuted(previewVideoRef.current.muted);
+    }
+  };
 
   const slide = HERO_SLIDES[current];
   const headlineParts = parseHighlight(slide.headline);
@@ -119,17 +179,34 @@ const Hero: React.FC<HeroProps> = ({ scrollTo }) => {
                 onClick={() => setVideoModalOpen(true)}
                 className="hero-video-block"
               >
-                {/* Díaz Lara label inside video */}
-                <div className="video-brand">
-                  Díaz Lara
-                </div>
+                {/* Video preview with autoplay */}
+                <video
+                  ref={previewVideoRef}
+                  className="hero-video-preview"
+                  autoPlay
+                  loop
+                  playsInline
+                >
+                  <source src={videoWebDL} type="video/mp4" />
+                </video>
 
-                {/* Play button */}
-                <div className="video-play-btn">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                    <path d="M8 5.14v14.72a1 1 0 001.5.86l11.5-7.36a1 1 0 000-1.72L9.5 4.28a1 1 0 00-1.5.86z" fill="rgba(255,255,255,0.9)" />
-                  </svg>
-                </div>
+                {/* Mute/Unmute button */}
+                <button
+                  onClick={togglePreviewMute}
+                  className="video-mute-btn"
+                >
+                  {previewMuted ? (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                      <path d="M11 5L6 9H2v6h4l5 4V5z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M23 9l-6 6M17 9l6 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  ) : (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                      <path d="M11 5L6 9H2v6h4l5 4V5z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  )}
+                </button>
 
                 {/* Video duration */}
                 <div className="video-duration">
@@ -148,10 +225,10 @@ const Hero: React.FC<HeroProps> = ({ scrollTo }) => {
 
       {/* Video Modal */}
       {videoModalOpen && (
-        <div className="video-modal-overlay" onClick={() => setVideoModalOpen(false)}>
+        <div className="video-modal-overlay" onClick={closeModal}>
           {/* Close button */}
           <button
-            onClick={() => setVideoModalOpen(false)}
+            onClick={closeModal}
             className="video-modal-close"
           >
             ×
@@ -159,10 +236,43 @@ const Hero: React.FC<HeroProps> = ({ scrollTo }) => {
 
           {/* Video container */}
           <div className="video-modal-content" onClick={e => e.stopPropagation()}>
-            <div className="video-modal-placeholder">
-              <div className="video-modal-brand">Díaz Lara</div>
-              <div className="video-modal-text">Video de presentación</div>
-              <div className="video-modal-soon">(Próximamente)</div>
+            <video
+              ref={modalVideoRef}
+              className="video-modal-player"
+              playsInline
+              onClick={togglePlay}
+            >
+              <source src={videoWebDL} type="video/mp4" />
+            </video>
+
+            {/* Play/Pause overlay button */}
+            {!isPlaying && (
+              <div className="video-modal-play-overlay" onClick={togglePlay}>
+                <div className="video-modal-play-btn">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                    <path d="M8 5.14v14.72a1 1 0 001.5.86l11.5-7.36a1 1 0 000-1.72L9.5 4.28a1 1 0 00-1.5.86z" fill="rgba(255,255,255,0.9)" />
+                  </svg>
+                </div>
+              </div>
+            )}
+
+            {/* Controls bar */}
+            <div className="video-modal-controls">
+              <button onClick={togglePlay} className="video-control-btn">
+                {isPlaying ? (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <rect x="6" y="4" width="4" height="16" rx="1" fill="white" />
+                    <rect x="14" y="4" width="4" height="16" rx="1" fill="white" />
+                  </svg>
+                ) : (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M8 5.14v14.72a1 1 0 001.5.86l11.5-7.36a1 1 0 000-1.72L9.5 4.28a1 1 0 00-1.5.86z" fill="white" />
+                  </svg>
+                )}
+              </button>
+              <button onClick={closeModal} className="video-control-btn video-control-close">
+                Cerrar
+              </button>
             </div>
           </div>
         </div>

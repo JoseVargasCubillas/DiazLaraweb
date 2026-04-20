@@ -164,7 +164,7 @@ const SessionForm: React.FC = () => {
               <div className="session-info-wrapper">
                 <div className="session-info-panel">
                   <div className="session-info-header">
-                    <span className="session-info-label">SESIÓN ESTRATÉGICA</span>
+                    <span className="session-info-label">SESIÓN ESTRATÉGICA GRATUITA</span>
                     <span className="session-info-time">15 MIN</span>
                   </div>
 

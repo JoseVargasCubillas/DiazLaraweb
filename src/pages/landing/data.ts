@@ -122,7 +122,6 @@ export const SERVICE_OPTIONS = [
   'Contabilidad y nómina',
   'Corporativo y derecho empresarial',
   'Diagnóstico para metodologías',
-  'Auditoría y compliance',
   'Planeación patrimonial y holding',
   'Consultoría financiera',
   'No estoy seguro, necesito orientación',
@@ -156,11 +155,11 @@ export const SESSION_BENEFITS = [
 export const FAQS: FaqItem[] = [
   {
     q: '¿Cuánto tiempo toma el proceso?',
-    a: 'Comienza con una llamada de diagnóstico de 30 min. Recibes cotización en 48 hrs y el servicio arranca en la primera semana.',
+    a: 'La llamada toma 15 minutos, donde conversamos sobre tu situación actual, para después determinar la cotización adecuada para tu servicio.',
   },
   {
     q: '¿Cuánto cuesta la llamada de diagnóstico?',
-    a: 'Tiene un costo de $500 MXN que se descuenta del total si contratas el servicio.',
+    a: 'La llamada es gratuita, en esta te asesoraremos cual es el servicio adecuado para ti.',
   },
   {
     q: '¿Para quién está diseñado?',
@@ -180,8 +179,14 @@ export const FAQS: FaqItem[] = [
   },
 ];
 
+
+
+
+
+
 // ── TESTIMONIALS ────────────────────────────────────────────────────────────────
 export const TESTIMONIALS: Testimonial[] = [
+
   {
     text: 'Después de más de ocho años operando sin estructura formal, Diego y su equipo me acompañaron en una reestructuración fiscal completa: holding, empresa operadora, estudio de precios de transferencia, contratos con fecha cierta y migración de persona física a moral. No es el típico consultor teórico; es un mentor que ha vivido cada estrategia que enseña.',
     name: 'Lic. Gamaliel Javier Gómez García',
