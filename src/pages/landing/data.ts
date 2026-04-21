@@ -166,7 +166,7 @@ export const FAQS: FaqItem[] = [
     a: 'Empresarios, directores, personas físicas con actividad empresarial y familias que buscan proteger su patrimonio.',
   },
   {
-    q: '¿Ya tengo contador o abogado?',
+    q: '¿Y si ya tengo contador o abogado?',
     a: 'Complementamos a tu equipo con una visión independiente y especializada. Trabajamos en coordinación o de forma independiente.',
   },
   {
