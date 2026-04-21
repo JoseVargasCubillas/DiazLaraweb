@@ -15,20 +15,38 @@ const Hero: React.FC<HeroProps> = ({ scrollTo }) => {
   const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(true);
   const [previewMuted, setPreviewMuted] = useState(false);
+  const bgVideoRef = useRef<HTMLVideoElement>(null);
   const modalVideoRef = useRef<HTMLVideoElement>(null);
   const previewVideoRef = useRef<HTMLVideoElement>(null);
 
-  // Try to play with sound on load
+  // Try to play with sound on load, fallback to muted on mobile
   useEffect(() => {
     const video = previewVideoRef.current;
     if (video) {
-      video.muted = false;
-      video.play().catch(() => {
-        // Browser blocked autoplay with sound, fallback to muted
+      // On mobile, always start muted due to browser autoplay policies
+      const isMobile = /iPhone|iPad|Android|Mobile/i.test(navigator.userAgent);
+
+      if (isMobile) {
         video.muted = true;
         setPreviewMuted(true);
-        video.play();
-      });
+        video.play().catch(err => console.log('Preview video autoplay blocked:', err));
+      } else {
+        // On desktop, try unmuted first
+        video.muted = false;
+        video.play().catch(() => {
+          video.muted = true;
+          setPreviewMuted(true);
+          video.play();
+        });
+      }
+    }
+  }, []);
+
+  // Ensure background video plays
+  useEffect(() => {
+    const video = bgVideoRef.current;
+    if (video) {
+      video.play().catch(err => console.log('Background video autoplay blocked:', err));
     }
   }, []);
 
@@ -107,9 +125,10 @@ const Hero: React.FC<HeroProps> = ({ scrollTo }) => {
       <section className="hero-section">
         {/* Video Background */}
         <video
+          ref={bgVideoRef}
           className="hero-video-bg"
-          autoPlay
           muted
+          autoPlay
           loop
           playsInline
         >
@@ -177,6 +196,7 @@ const Hero: React.FC<HeroProps> = ({ scrollTo }) => {
                 <video
                   ref={previewVideoRef}
                   className="hero-video-preview"
+                  muted
                   autoPlay
                   loop
                   playsInline

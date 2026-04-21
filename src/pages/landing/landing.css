@@ -55,6 +55,7 @@
   height: 100%;
   object-fit: cover;
   z-index: -2;
+  background: #13305a;
 }
 
 /* Dark overlay for readability */
@@ -1723,8 +1724,8 @@
   }
 
   .hero-section {
-    padding: 100px 24px 48px;
-    min-height: auto;
+    padding: 80px 24px 48px;
+    min-height: 100svh;
   }
 
   .hero-container {
@@ -1767,10 +1768,12 @@
   .hero-video-wrapper {
     max-width: 100%;
     order: 2;
+    min-height: 280px;
   }
 
   .hero-video-block {
     aspect-ratio: 16/9;
+    min-height: 280px;
   }
 
   .video-caption {
@@ -1938,6 +1941,7 @@
 
   .hero-section {
     padding: 90px 16px 40px;
+    min-height: 100svh;
   }
 
   .hero-headline {
@@ -1951,6 +1955,14 @@
   .hero-cta {
     padding: 16px 24px;
     font-size: 14px;
+  }
+
+  .hero-video-wrapper {
+    min-height: 240px;
+  }
+
+  .hero-video-block {
+    min-height: 240px;
   }
 
   .services-section {
