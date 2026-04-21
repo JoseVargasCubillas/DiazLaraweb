@@ -7,38 +7,34 @@ const fondoFrase = '/assets/FONDO FRASE.mp4';
 const ParallaxBreak: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Use Intersection Observer to play video when it enters viewport
+  // Force video playback on mount with retry logic
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
+    const playVideo = (video: HTMLVideoElement | null, name: string) => {
+      if (!video) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            // Video is in viewport, try to play
-            video.muted = true;
-            const playPromise = video.play();
+      // Immediate attempt
+      const attempt = () => {
+        const playPromise = video.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(err => {
+            console.log(`${name} autoplay blocked, retrying...`);
+            // Retry after a short delay
+            setTimeout(attempt, 500);
+          });
+        }
+      };
 
-            if (playPromise !== undefined) {
-              playPromise.catch((error) => {
-                console.log('Video play error:', error);
-              });
-            }
-          } else {
-            // Video left viewport, pause it
-            video.pause();
-          }
-        });
-      },
-      { threshold: 0.25 }
-    );
-
-    observer.observe(video);
-
-    return () => {
-      observer.unobserve(video);
+      attempt();
     };
+
+    playVideo(videoRef.current, 'Parallax video');
+
+    // Also try after a slight delay in case resources aren't loaded
+    const timeout = setTimeout(() => {
+      playVideo(videoRef.current, 'Parallax video (retry)');
+    }, 1000);
+
+    return () => clearTimeout(timeout);
   }, []);
   return (
     <div className="parallax-section">

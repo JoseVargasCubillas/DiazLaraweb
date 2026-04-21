@@ -19,68 +19,37 @@ const Hero: React.FC<HeroProps> = ({ scrollTo }) => {
   const modalVideoRef = useRef<HTMLVideoElement>(null);
   const previewVideoRef = useRef<HTMLVideoElement>(null);
 
-  // Use Intersection Observer to play preview video when in viewport
+  // Force video playback on mount with retry logic
   useEffect(() => {
-    const video = previewVideoRef.current;
-    if (!video) return;
+    const playVideo = (video: HTMLVideoElement | null, name: string) => {
+      if (!video) return;
 
-    const isMobile = /iPhone|iPad|Android|Mobile/i.test(navigator.userAgent);
+      // Immediate attempt
+      const attempt = () => {
+        const playPromise = video.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(err => {
+            console.log(`${name} autoplay blocked, retrying...`);
+            // Retry after a short delay
+            setTimeout(attempt, 500);
+          });
+        }
+      };
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            if (isMobile) {
-              video.muted = true;
-              setPreviewMuted(true);
-            } else {
-              video.muted = false;
-            }
+      attempt();
+    };
 
-            const playPromise = video.play();
-            if (playPromise !== undefined) {
-              playPromise.catch(() => {
-                video.muted = true;
-                setPreviewMuted(true);
-                video.play();
-              });
-            }
-          } else {
-            video.pause();
-          }
-        });
-      },
-      { threshold: 0.25 }
-    );
+    // Try to play both videos
+    playVideo(bgVideoRef.current, 'Background video');
+    playVideo(previewVideoRef.current, 'Preview video');
 
-    observer.observe(video);
-    return () => observer.unobserve(video);
-  }, []);
+    // Also try after a slight delay in case resources aren't loaded
+    const timeout = setTimeout(() => {
+      playVideo(bgVideoRef.current, 'Background video (retry)');
+      playVideo(previewVideoRef.current, 'Preview video (retry)');
+    }, 1000);
 
-  // Use Intersection Observer to play background video when in viewport
-  useEffect(() => {
-    const video = bgVideoRef.current;
-    if (!video) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            video.muted = true;
-            const playPromise = video.play();
-            if (playPromise !== undefined) {
-              playPromise.catch(err => console.log('Background video play error:', err));
-            }
-          } else {
-            video.pause();
-          }
-        });
-      },
-      { threshold: 0 }
-    );
-
-    observer.observe(video);
-    return () => observer.unobserve(video);
+    return () => clearTimeout(timeout);
   }, []);
 
   useEffect(() => {
