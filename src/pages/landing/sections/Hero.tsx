@@ -19,37 +19,56 @@ const Hero: React.FC<HeroProps> = ({ scrollTo }) => {
   const modalVideoRef = useRef<HTMLVideoElement>(null);
   const previewVideoRef = useRef<HTMLVideoElement>(null);
 
-  // Force video playback on mount with retry logic
+  // Force video playback with Intersection Observer and retries
   useEffect(() => {
-    const playVideo = (video: HTMLVideoElement | null, name: string) => {
+    const playWithRetry = (video: HTMLVideoElement | null, name: string) => {
       if (!video) return;
 
-      // Immediate attempt
-      const attempt = () => {
+      const attempt = (retries = 0) => {
         const playPromise = video.play();
         if (playPromise !== undefined) {
           playPromise.catch(err => {
-            console.log(`${name} autoplay blocked, retrying...`);
-            // Retry after a short delay
-            setTimeout(attempt, 500);
+            if (retries < 5) {
+              console.log(`${name} play attempt ${retries + 1} failed, retrying...`);
+              setTimeout(() => attempt(retries + 1), 300);
+            }
           });
         }
       };
-
       attempt();
     };
 
-    // Try to play both videos
-    playVideo(bgVideoRef.current, 'Background video');
-    playVideo(previewVideoRef.current, 'Preview video');
+    // Immediately try to play both videos
+    playWithRetry(bgVideoRef.current, 'Background video');
+    playWithRetry(previewVideoRef.current, 'Preview video');
 
-    // Also try after a slight delay in case resources aren't loaded
+    // Use Intersection Observer for when videos enter viewport
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const video = entry.target as HTMLVideoElement;
+          if (entry.isIntersecting && video.paused) {
+            playWithRetry(video, `${video.className} (viewport)`);
+          }
+        });
+      },
+      { threshold: 0.1 }
+    );
+
+    if (bgVideoRef.current) observer.observe(bgVideoRef.current);
+    if (previewVideoRef.current) observer.observe(previewVideoRef.current);
+
+    // Fallback: try again after all resources should be loaded
     const timeout = setTimeout(() => {
-      playVideo(bgVideoRef.current, 'Background video (retry)');
-      playVideo(previewVideoRef.current, 'Preview video (retry)');
-    }, 1000);
+      playWithRetry(bgVideoRef.current, 'Background video (fallback)');
+      playWithRetry(previewVideoRef.current, 'Preview video (fallback)');
+    }, 2000);
 
-    return () => clearTimeout(timeout);
+    return () => {
+      if (bgVideoRef.current) observer.unobserve(bgVideoRef.current);
+      if (previewVideoRef.current) observer.unobserve(previewVideoRef.current);
+      clearTimeout(timeout);
+    };
   }, []);
 
   useEffect(() => {

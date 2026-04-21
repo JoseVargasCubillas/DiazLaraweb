@@ -7,34 +7,57 @@ const fondoFrase = '/assets/FONDO FRASE.mp4';
 const ParallaxBreak: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Force video playback on mount with retry logic
+  // Force video playback with Intersection Observer
   useEffect(() => {
-    const playVideo = (video: HTMLVideoElement | null, name: string) => {
-      if (!video) return;
+    const video = videoRef.current;
+    if (!video) return;
 
-      // Immediate attempt
-      const attempt = () => {
+    // Function to attempt playback with retries
+    const playWithRetry = () => {
+      const attempt = (retries = 0) => {
         const playPromise = video.play();
         if (playPromise !== undefined) {
           playPromise.catch(err => {
-            console.log(`${name} autoplay blocked, retrying...`);
-            // Retry after a short delay
-            setTimeout(attempt, 500);
+            if (retries < 5) {
+              console.log(`Parallax video play attempt ${retries + 1} failed, retrying...`);
+              setTimeout(() => attempt(retries + 1), 300);
+            }
           });
         }
       };
-
       attempt();
     };
 
-    playVideo(videoRef.current, 'Parallax video');
+    // Try to play immediately
+    playWithRetry();
 
-    // Also try after a slight delay in case resources aren't loaded
+    // Also use Intersection Observer to play when visible
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && video.paused) {
+            console.log('Video entering viewport, attempting to play...');
+            playWithRetry();
+          }
+        });
+      },
+      { threshold: 0.1 }
+    );
+
+    observer.observe(video);
+
+    // Also try after videos are fully loaded
     const timeout = setTimeout(() => {
-      playVideo(videoRef.current, 'Parallax video (retry)');
-    }, 1000);
+      if (video.paused) {
+        console.log('Fallback: attempting to play parallax video...');
+        playWithRetry();
+      }
+    }, 2000);
 
-    return () => clearTimeout(timeout);
+    return () => {
+      observer.unobserve(video);
+      clearTimeout(timeout);
+    };
   }, []);
   return (
     <div className="parallax-section">
