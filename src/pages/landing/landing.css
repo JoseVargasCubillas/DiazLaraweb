@@ -1685,6 +1685,19 @@
     gap: 24px;
   }
 
+  .session-content-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .session-info-wrapper {
+    width: 100%;
+  }
+
+  .session-info-panel {
+    width: 100%;
+  }
+
   .testimonial-card {
     grid-template-columns: 1fr;
   }
@@ -1830,9 +1843,17 @@
     padding: 80px 24px;
   }
 
+  .session-container {
+    max-width: 100%;
+  }
+
   .session-content-grid {
     grid-template-columns: 1fr;
     gap: 32px;
+  }
+
+  .session-form-wrapper {
+    width: 100%;
   }
 
   .session-form-row {
@@ -1844,6 +1865,10 @@
   }
 
   .session-info-wrapper {
+    width: 100%;
+  }
+
+  .session-info-panel {
     width: 100%;
   }
 
