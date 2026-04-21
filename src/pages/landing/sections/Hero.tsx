@@ -165,14 +165,6 @@ const Hero: React.FC<HeroProps> = ({ scrollTo }) => {
                   />
                 ))}
               </div>
-
-              {/* CTA Button */}
-              <button
-                onClick={() => scrollTo('sesion')}
-                className="hero-cta"
-              >
-                Reserva tu videollamada
-              </button>
             </div>
 
             {/* Right side - Video Preview Block */}
@@ -221,6 +213,14 @@ const Hero: React.FC<HeroProps> = ({ scrollTo }) => {
                 Conoce nuestros servicios y cómo podemos ayudarte
               </p>
             </div>
+
+            {/* CTA Button - Moved here for mobile reordering */}
+            <button
+              onClick={() => scrollTo('sesion')}
+              className="hero-cta"
+            >
+              Reserva tu videollamada
+            </button>
           </div>
         </div>
       </section>
@@ -278,7 +278,7 @@ const Hero: React.FC<HeroProps> = ({ scrollTo }) => {
             </div>
           </div>
         </div>
-      )}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  )}
     </>
   );
 };
