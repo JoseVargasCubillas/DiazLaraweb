@@ -1,10 +1,19 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import consultoresImg from '../../../assets/Consultores.png';
 
 // Video referenced by static path (uploaded directly to Hostinger)
 const fondoFrase = '/assets/FONDO FRASE.mp4';
 
 const ParallaxBreak: React.FC = () => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Ensure video plays on load
+  useEffect(() => {
+    const video = videoRef.current;
+    if (video) {
+      video.play().catch(err => console.log('Parallax video autoplay blocked:', err));
+    }
+  }, []);
   return (
     <div className="parallax-section">
       {/* Team Image */}
@@ -20,9 +29,10 @@ const ParallaxBreak: React.FC = () => {
       <div className="parallax-video-banner">
         {/* Video Background */}
         <video
+          ref={videoRef}
           className="parallax-video-bg"
-          autoPlay
           muted
+          autoPlay
           loop
           playsInline
         >

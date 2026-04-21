@@ -706,6 +706,7 @@
   height: 100%;
   object-fit: cover;
   z-index: -2;
+  background: #13305a;
 }
 
 .parallax-overlay {
