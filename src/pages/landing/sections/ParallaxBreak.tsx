@@ -7,12 +7,38 @@ const fondoFrase = '/assets/FONDO FRASE.mp4';
 const ParallaxBreak: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Ensure video plays on load
+  // Use Intersection Observer to play video when it enters viewport
   useEffect(() => {
     const video = videoRef.current;
-    if (video) {
-      video.play().catch(err => console.log('Parallax video autoplay blocked:', err));
-    }
+    if (!video) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            // Video is in viewport, try to play
+            video.muted = true;
+            const playPromise = video.play();
+
+            if (playPromise !== undefined) {
+              playPromise.catch((error) => {
+                console.log('Video play error:', error);
+              });
+            }
+          } else {
+            // Video left viewport, pause it
+            video.pause();
+          }
+        });
+      },
+      { threshold: 0.25 }
+    );
+
+    observer.observe(video);
+
+    return () => {
+      observer.unobserve(video);
+    };
   }, []);
   return (
     <div className="parallax-section">

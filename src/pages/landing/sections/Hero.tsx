@@ -19,35 +19,68 @@ const Hero: React.FC<HeroProps> = ({ scrollTo }) => {
   const modalVideoRef = useRef<HTMLVideoElement>(null);
   const previewVideoRef = useRef<HTMLVideoElement>(null);
 
-  // Try to play with sound on load, fallback to muted on mobile
+  // Use Intersection Observer to play preview video when in viewport
   useEffect(() => {
     const video = previewVideoRef.current;
-    if (video) {
-      // On mobile, always start muted due to browser autoplay policies
-      const isMobile = /iPhone|iPad|Android|Mobile/i.test(navigator.userAgent);
+    if (!video) return;
 
-      if (isMobile) {
-        video.muted = true;
-        setPreviewMuted(true);
-        video.play().catch(err => console.log('Preview video autoplay blocked:', err));
-      } else {
-        // On desktop, try unmuted first
-        video.muted = false;
-        video.play().catch(() => {
-          video.muted = true;
-          setPreviewMuted(true);
-          video.play();
+    const isMobile = /iPhone|iPad|Android|Mobile/i.test(navigator.userAgent);
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            if (isMobile) {
+              video.muted = true;
+              setPreviewMuted(true);
+            } else {
+              video.muted = false;
+            }
+
+            const playPromise = video.play();
+            if (playPromise !== undefined) {
+              playPromise.catch(() => {
+                video.muted = true;
+                setPreviewMuted(true);
+                video.play();
+              });
+            }
+          } else {
+            video.pause();
+          }
         });
-      }
-    }
+      },
+      { threshold: 0.25 }
+    );
+
+    observer.observe(video);
+    return () => observer.unobserve(video);
   }, []);
 
-  // Ensure background video plays
+  // Use Intersection Observer to play background video when in viewport
   useEffect(() => {
     const video = bgVideoRef.current;
-    if (video) {
-      video.play().catch(err => console.log('Background video autoplay blocked:', err));
-    }
+    if (!video) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            video.muted = true;
+            const playPromise = video.play();
+            if (playPromise !== undefined) {
+              playPromise.catch(err => console.log('Background video play error:', err));
+            }
+          } else {
+            video.pause();
+          }
+        });
+      },
+      { threshold: 0 }
+    );
+
+    observer.observe(video);
+    return () => observer.unobserve(video);
   }, []);
 
   useEffect(() => {
