@@ -1847,13 +1847,14 @@
     max-width: 100%;
   }
 
+  .session-form-wrapper {
+    width: 100%;
+    padding: 0;
+  }
+
   .session-content-grid {
     grid-template-columns: 1fr;
     gap: 32px;
-  }
-
-  .session-form-wrapper {
-    width: 100%;
   }
 
   .session-form-row {
@@ -1966,7 +1967,8 @@
   }
 
   .session-form-wrapper {
-    padding: 24px 16px;
+    width: 100%;
+    padding: 0;
   }
 
   .session-form-row {
