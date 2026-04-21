@@ -3,7 +3,7 @@ import { HERO_SLIDES, parseHighlight } from '../data';
 
 // Videos referenced by static path (uploaded directly to Hostinger)
 const fondoHero = '/assets/FONDO HERO.mp4';
-const videoWebDL = '/assets/VIDEO WEB DL.mp4';
+const videoWebDL = '/assets/VIDEO WEB DL compressed.mp4';
 
 interface HeroProps {
   scrollTo: (id: string) => void;

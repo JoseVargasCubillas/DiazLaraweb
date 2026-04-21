@@ -24,6 +24,6 @@ dist-ssr
 .vite/
 
 # Large video files (uploaded directly to Hostinger)
-*.mp4
-src/assets/*.mp4
-dist/assets/*.mp4
+# Only compressed versions are tracked in git
+src/assets/VIDEO WEB DL.mp4
+dist/assets/VIDEO WEB DL.mp4
