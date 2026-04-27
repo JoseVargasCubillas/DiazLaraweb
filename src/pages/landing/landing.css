@@ -1116,6 +1116,19 @@
   color: #fff;
 }
 
+.session-submit:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.session-form-error {
+  margin: 8px 0 0;
+  color: #b42318;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 /* Right side - Info Panel */
 .session-info-wrapper {
   display: flex;

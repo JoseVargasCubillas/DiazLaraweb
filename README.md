@@ -1,73 +1,39 @@
-# React + TypeScript + Vite
+# Diaz Lara Landing (Frontend)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Landing en React + TypeScript + Vite para captar solicitudes de sesion.
 
-Currently, two official plugins are available:
+## Requisitos
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Node.js 20+
+- Backend levantado y accesible por HTTP
 
-## React Compiler
+## Configuracion de entorno
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+1. Crea un archivo `.env` en la raiz.
+2. Copia el contenido de `.env.example`.
+3. Ajusta los valores segun tu backend.
 
-## Expanding the ESLint configuration
+Variables usadas por el frontend:
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- `VITE_API_URL`: URL base del backend (ejemplo: `http://localhost:3000`).
+- `VITE_BOOKING_ENDPOINT`: endpoint para guardar reservas.
+  - Ruta relativa: ` /api/sessions/bookings` (se concatena con `VITE_API_URL`).
+  - URL completa: `https://api.tudominio.com/api/sessions/bookings`.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Ejecutar
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Build
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run build
+npm run preview
 ```
+
+## Nota importante
+
+Este repositorio contiene solo frontend. El guardado en base de datos depende de que exista un backend activo en el endpoint configurado.

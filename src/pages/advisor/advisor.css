@@ -1,0 +1,976 @@
+:root {
+  --advisor-navy-900: #091a33;
+  --advisor-navy-800: #0e2444;
+  --advisor-navy-700: #13305a;
+  --advisor-cream-100: #f7f2ea;
+  --advisor-cream-200: #efe8e0;
+  --advisor-ink-500: #5f6f89;
+  --advisor-border: rgba(255, 255, 255, 0.12);
+}
+
+.advisor-shell {
+  min-height: 100svh;
+  background:
+    radial-gradient(circle at 15% 10%, rgba(239, 232, 224, 0.18), transparent 38%),
+    radial-gradient(circle at 90% 90%, rgba(19, 48, 90, 0.25), transparent 40%),
+    linear-gradient(150deg, var(--advisor-navy-900) 0%, var(--advisor-navy-800) 45%, var(--advisor-navy-700) 100%);
+  color: #ffffff;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+.advisor-login,
+.advisor-panel {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 32px 0 48px;
+}
+
+.advisor-login-card,
+.advisor-board,
+.advisor-lead-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--advisor-border);
+  border-radius: 18px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 24px 70px rgba(5, 12, 25, 0.32);
+}
+
+.advisor-login-card {
+  max-width: 520px;
+  padding: 36px;
+  margin: 8vh auto 0;
+}
+
+.advisor-kicker {
+  display: inline-flex;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(239, 232, 224, 0.18);
+  color: var(--advisor-cream-200);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.advisor-title {
+  margin-top: 16px;
+  font-size: clamp(32px, 5vw, 48px);
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+}
+
+.advisor-copy {
+  margin-top: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.65;
+  max-width: 62ch;
+  font-size: 14px;
+}
+
+.advisor-form {
+  display: grid;
+  gap: 16px;
+  margin-top: 28px;
+}
+
+.advisor-field {
+  display: grid;
+  gap: 8px;
+}
+
+.advisor-field label,
+.advisor-schedule label {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.advisor-field input,
+.advisor-schedule input,
+.advisor-schedule select {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(9, 26, 51, 0.6);
+  color: #ffffff;
+  border-radius: 12px;
+  padding: 14px 16px;
+  font: 400 15px/1.2 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  outline: none;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.advisor-field input::placeholder,
+.advisor-schedule input::placeholder {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.advisor-field input:focus,
+.advisor-schedule input:focus,
+.advisor-schedule select:focus {
+  border-color: rgba(239, 232, 224, 0.72);
+  background: rgba(9, 26, 51, 0.78);
+}
+
+.advisor-submit,
+.advisor-action,
+.advisor-ghost {
+  border: none;
+  border-radius: 10px;
+  padding: 13px 18px;
+  cursor: pointer;
+  font: 500 14px/1.2 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  letter-spacing: 0.02em;
+  transition: transform 120ms ease, opacity 120ms ease, background 120ms ease;
+}
+
+.advisor-submit,
+.advisor-action {
+  background: var(--advisor-cream-200);
+  color: var(--advisor-navy-700);
+}
+
+.advisor-ghost {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.advisor-submit:hover,
+.advisor-action:hover,
+.advisor-ghost:hover {
+  transform: translateY(-1px);
+}
+
+.advisor-submit:disabled,
+.advisor-action:disabled,
+.advisor-ghost:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.advisor-error {
+  margin-top: 14px;
+  color: #ffd5d5;
+  font: 500 13px/1.5 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+.advisor-panel {
+  display: grid;
+  gap: 20px;
+}
+
+.advisor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+}
+
+.advisor-header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.advisor-board {
+  padding: 24px;
+}
+
+.advisor-filters {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.advisor-filter {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.78);
+  padding: 10px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  font: 600 12px/1 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.advisor-filter.active {
+  background: var(--advisor-cream-200);
+  border-color: transparent;
+  color: var(--advisor-navy-700);
+}
+
+.advisor-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.advisor-lead-card {
+  padding: 22px;
+}
+
+.advisor-lead-top,
+.advisor-lead-meta,
+.advisor-lead-actions,
+.advisor-schedule-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.advisor-lead-top {
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.advisor-lead-name {
+  font-size: 26px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.advisor-lead-email,
+.advisor-lead-phone,
+.advisor-empty,
+.advisor-hint,
+.advisor-note {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.advisor-lead-email,
+.advisor-lead-phone,
+.advisor-empty,
+.advisor-hint,
+.advisor-note,
+.advisor-badge,
+.advisor-service {
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+.advisor-lead-meta {
+  margin-top: 14px;
+}
+
+.advisor-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(239, 232, 224, 0.14);
+  border: 1px solid rgba(239, 232, 224, 0.18);
+  color: var(--advisor-cream-200);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.advisor-services {
+  margin-top: 14px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.advisor-service {
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.86);
+  font: 500 12px/1.2 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+.advisor-lead-actions {
+  margin-top: 18px;
+}
+
+.advisor-action.danger {
+  background: #f5bfbe;
+  color: #5b2221;
+}
+
+.advisor-schedule {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: grid;
+  gap: 14px;
+}
+
+.advisor-schedule-row > * {
+  flex: 1 1 220px;
+}
+
+.advisor-note {
+  margin-top: 14px;
+  font: 400 14px/1.6 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+/* ── Top Navigation ────────────────────────────────── */
+.advisor-nav {
+  background: rgba(9, 26, 51, 0.82);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--advisor-border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.advisor-nav-inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  height: 60px;
+}
+
+.advisor-nav-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--advisor-cream-200);
+  white-space: nowrap;
+  text-decoration: none;
+  transition: opacity 0.18s ease;
+}
+
+.advisor-nav-brand:hover {
+  opacity: 0.82;
+}
+
+.advisor-nav-logo {
+  height: 30px;
+  width: auto;
+  display: block;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
+}
+
+.advisor-nav-brand-text {
+  font-size: 13px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: rgba(247, 242, 234, 0.78);
+}
+
+.advisor-login-logo {
+  display: block;
+  height: 56px;
+  width: auto;
+  margin: 0 auto 24px;
+  filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.45));
+}
+
+.advisor-login-card {
+  text-align: center;
+}
+
+.advisor-login-card .advisor-form {
+  text-align: left;
+}
+
+.advisor-nav-tabs {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+}
+
+.advisor-nav-tab {
+  background: none;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font: 500 13px/1 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  color: rgba(255, 255, 255, 0.65);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.advisor-nav-tab:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.advisor-nav-tab.active {
+  background: rgba(239, 232, 224, 0.15);
+  color: var(--advisor-cream-200);
+}
+
+.advisor-nav-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.advisor-nav-user {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.advisor-nav-logout {
+  padding: 7px 12px;
+  font-size: 13px;
+}
+
+/* ── Meet link row ──────────────────────────────────── */
+.advisor-meet-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(52, 168, 83, 0.12);
+  border: 1px solid rgba(52, 168, 83, 0.24);
+}
+
+.advisor-meet-icon {
+  font-size: 16px;
+}
+
+.advisor-meet-link {
+  flex: 1;
+  font: 500 13px/1.4 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  color: #7ef7aa;
+  text-decoration: none;
+  word-break: break-all;
+}
+
+.advisor-meet-link:hover {
+  text-decoration: underline;
+}
+
+.advisor-copy-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font: 500 12px/1 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+}
+
+.advisor-copy-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+/* ── Schedule title ─────────────────────────────────── */
+.advisor-schedule-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 0.02em;
+  margin-bottom: 4px;
+}
+
+/* ── Lead org line ──────────────────────────────────── */
+.advisor-lead-org {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.55);
+  margin-top: 4px;
+}
+
+/* ── Lead info wrapper ──────────────────────────────── */
+.advisor-lead-info {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── Badges with color variants ─────────────────────── */
+.advisor-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.badge-interesado {
+  background: rgba(250, 204, 21, 0.14);
+  border-color: rgba(250, 204, 21, 0.2);
+  color: #fde68a;
+}
+
+.badge-prospecto {
+  background: rgba(99, 179, 237, 0.12);
+  border-color: rgba(99, 179, 237, 0.2);
+  color: #90cdf4;
+}
+
+.badge-cliente {
+  background: rgba(52, 168, 83, 0.12);
+  border-color: rgba(52, 168, 83, 0.2);
+  color: #7ef7aa;
+}
+
+.badge-rechazado {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+}
+
+/* ── Success message ────────────────────────────────── */
+.advisor-success {
+  margin-top: 14px;
+  color: #7ef7aa;
+  font: 500 13px/1.5 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+/* ── Register form layout ───────────────────────────── */
+.advisor-register-board {
+  max-width: 640px;
+}
+
+.advisor-register-form {
+  padding: 4px 0;
+}
+
+.advisor-register-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.advisor-register-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+@media (max-width: 1024px) {
+  .advisor-grid {
+    grid-template-columns: 1fr;
+  }
+  .advisor-stats {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .advisor-title {
+    font-size: clamp(28px, 6vw, 38px);
+  }
+
+  .advisor-board,
+  .advisor-lead-card,
+  .advisor-login-card {
+    border-radius: 14px;
+  }
+
+  .advisor-schedule-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .advisor-login,
+  .advisor-panel {
+    width: 100%;
+    padding: 16px 12px 32px;
+  }
+
+  .advisor-login-card {
+    padding: 22px;
+    margin-top: 24px;
+  }
+
+  .advisor-board {
+    padding: 16px;
+  }
+
+  .advisor-lead-card {
+    padding: 18px;
+  }
+
+  .advisor-header,
+  .advisor-header-actions,
+  .advisor-lead-actions {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .advisor-header-actions { gap: 8px; }
+
+  .advisor-submit,
+  .advisor-action,
+  .advisor-ghost {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .advisor-nav {
+    position: relative;
+  }
+
+  .advisor-nav-inner {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 12px 14px;
+    gap: 12px;
+  }
+
+  .advisor-nav-brand-text { display: none; }
+
+  .advisor-nav-tabs {
+    order: 3;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .advisor-nav-tabs::-webkit-scrollbar { display: none; }
+  .advisor-nav-tab { white-space: nowrap; flex-shrink: 0; }
+
+  .advisor-nav-right {
+    margin-left: auto;
+  }
+
+  .advisor-user-trigger .advisor-nav-user {
+    display: none;
+  }
+
+  .advisor-user-dropdown {
+    right: 0;
+    min-width: 220px;
+  }
+
+  .advisor-register-row,
+  .advisor-schedule-row {
+    grid-template-columns: 1fr;
+  }
+
+  .advisor-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .advisor-stat { padding: 14px; }
+  .advisor-stat-value { font-size: 24px; }
+
+  .advisor-filters {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
+  }
+  .advisor-filters::-webkit-scrollbar { display: none; }
+  .advisor-filter { white-space: nowrap; flex-shrink: 0; }
+
+  .advisor-lead-top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .advisor-badges { flex-wrap: wrap; }
+
+  .advisor-consultor-row {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 14px;
+  }
+  .advisor-consultor-info {
+    flex: 1 1 100%;
+    min-width: 0;
+    order: 2;
+  }
+  .advisor-consultor-row .advisor-avatar { order: 1; }
+  .advisor-consultor-row .advisor-pill,
+  .advisor-consultor-row > button {
+    order: 3;
+    flex: 1 1 auto;
+  }
+
+  .advisor-meet-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .advisor-meet-link { flex: 1 1 100%; word-break: break-all; }
+
+  .advisor-schedule {
+    margin-left: -16px;
+    margin-right: -16px;
+    margin-bottom: -16px;
+    padding: 16px;
+  }
+}
+
+@media (max-width: 420px) {
+  .advisor-stats { grid-template-columns: 1fr 1fr; }
+  .advisor-title { font-size: 26px; }
+  .advisor-lead-name { flex-wrap: wrap; }
+  .advisor-avatar { width: 38px; height: 38px; font-size: 14px; }
+}
+
+/* Universal box-sizing & overflow safety */
+.advisor-shell *,
+.advisor-shell *::before,
+.advisor-shell *::after { box-sizing: border-box; }
+.advisor-shell { overflow-x: hidden; }
+.advisor-lead-card,
+.advisor-board { max-width: 100%; }
+.advisor-lead-email,
+.advisor-lead-phone { word-break: break-word; }
+
+/* injected: stats + enhanced cards */
+
+/* ── Stats grid in header ──────────────────────────── */
+.advisor-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.advisor-stat {
+  position: relative;
+  padding: 18px 20px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(239, 232, 224, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
+  border: 1px solid var(--advisor-border);
+  overflow: hidden;
+}
+
+.advisor-stat::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 0% 0%, rgba(239, 232, 224, 0.18), transparent 60%);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.advisor-stat-label {
+  position: relative;
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 8px;
+}
+
+.advisor-stat-value {
+  position: relative;
+  display: block;
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--advisor-cream-100);
+}
+
+.advisor-stat-hint {
+  position: relative;
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+/* ── Lead card visual upgrade ──────────────────────── */
+.advisor-lead-card {
+  position: relative;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.advisor-lead-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 22px;
+  bottom: 22px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(180deg, var(--advisor-cream-200), rgba(239, 232, 224, 0.2));
+  opacity: 0.7;
+}
+
+.advisor-lead-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(239, 232, 224, 0.28);
+  box-shadow: 0 30px 80px rgba(5, 12, 25, 0.45);
+}
+
+.advisor-lead-email a,
+.advisor-lead-phone a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.22);
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.advisor-lead-email a:hover,
+.advisor-lead-phone a:hover {
+  color: var(--advisor-cream-200);
+  border-color: var(--advisor-cream-200);
+}
+
+.advisor-lead-name {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.advisor-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--advisor-cream-200), #d6c9b6);
+  color: var(--advisor-navy-800);
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+/* ── Schedule panel polish ─────────────────────────── */
+.advisor-schedule {
+  background: rgba(9, 26, 51, 0.45);
+  margin-left: -22px;
+  margin-right: -22px;
+  margin-bottom: -22px;
+  padding: 20px 22px;
+  border-bottom-left-radius: 18px;
+  border-bottom-right-radius: 18px;
+}
+
+/* ── Consultor list rows ──────────────────────────── */
+.advisor-consultor-list {
+  display: grid;
+  gap: 12px;
+}
+
+.advisor-consultor-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--advisor-border);
+}
+
+.advisor-consultor-row .advisor-avatar {
+  width: 40px;
+  height: 40px;
+  font-size: 14px;
+}
+
+.advisor-consultor-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.advisor-consultor-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0;
+}
+
+.advisor-consultor-meta {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+  margin-top: 2px;
+}
+
+.advisor-pill {
+  font-size: 11px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.advisor-pill.on {
+  background: rgba(126, 247, 170, 0.14);
+  color: #7ef7aa;
+  border: 1px solid rgba(126, 247, 170, 0.22);
+}
+
+.advisor-pill.off {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+@media (max-width: 720px) {
+  .advisor-nav-brand-text {
+    display: none;
+  }
+}
+
+
+/* ───── Session info on lead card ───── */
+.advisor-session-info {
+  margin-top: 0.85rem;
+  padding: 0.85rem 1rem;
+  background: rgba(186, 154, 110, 0.12);
+  border: 1px solid rgba(186, 154, 110, 0.35);
+  border-radius: 0.75rem;
+  color: #f4ead8;
+}
+.advisor-session-title { margin: 0 0 0.35rem; font-weight: 600; color: #e2c48a; font-size: 0.85rem; letter-spacing: 0.04em; text-transform: uppercase; }
+.advisor-session-date { margin: 0 0 0.35rem; font-size: 1.05rem; font-weight: 600; color: #fff; }
+.advisor-session-meta { margin: 0; font-size: 0.85rem; opacity: 0.85; }
+
+/* ───── User dropdown menu ───── */
+.advisor-user-menu { position: relative; }
+.advisor-user-trigger {
+  display: inline-flex; align-items: center; gap: 0.55rem;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: #f4ead8;
+  padding: 0.4rem 0.85rem 0.4rem 0.4rem;
+  border-radius: 999px;
+  cursor: pointer;
+  font: inherit;
+  transition: background 0.15s ease;
+}
+.advisor-user-trigger:hover { background: rgba(255,255,255,0.12); }
+.advisor-avatar.advisor-avatar-sm { width: 28px; height: 28px; font-size: 0.75rem; }
+.advisor-user-caret { font-size: 0.7rem; opacity: 0.7; }
+.advisor-user-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 240px;
+  background: #1c2538;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 0.75rem;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.45);
+  padding: 0.5rem;
+  z-index: 50;
+}
+.advisor-user-dropdown-header {
+  padding: 0.6rem 0.75rem 0.75rem;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  margin-bottom: 0.35rem;
+}
+.advisor-user-dropdown-name { margin: 0; font-weight: 600; color: #fff; }
+.advisor-user-dropdown-email { margin: 0.15rem 0 0; font-size: 0.8rem; color: rgba(244,234,216,0.7); }
+.advisor-user-dropdown-item {
+  display: block; width: 100%; text-align: left;
+  background: transparent; border: 0; color: #f4ead8;
+  padding: 0.6rem 0.75rem; border-radius: 0.5rem;
+  font: inherit; cursor: pointer;
+  transition: background 0.12s ease;
+}
+.advisor-user-dropdown-item:hover { background: rgba(255,255,255,0.08); }
+.advisor-user-dropdown-item.danger { color: #ffb3b3; }
+.advisor-user-dropdown-item.danger:hover { background: rgba(255,80,80,0.12); }

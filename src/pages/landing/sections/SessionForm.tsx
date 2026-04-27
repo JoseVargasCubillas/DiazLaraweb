@@ -20,9 +20,24 @@ const EMPTY: FormState = {
   name: '', email: '', phone: '', services: [],
 };
 
+const API_BASE_URL = (import.meta.env.VITE_API_URL as string | undefined)?.trim() || 'http://localhost:3000';
+const BOOKING_ENDPOINT = (import.meta.env.VITE_BOOKING_ENDPOINT as string | undefined)?.trim() || '/api/sessions/bookings';
+
+const getBookingUrl = () => {
+  if (BOOKING_ENDPOINT.startsWith('http://') || BOOKING_ENDPOINT.startsWith('https://')) {
+    return BOOKING_ENDPOINT;
+  }
+
+  const normalizedBase = API_BASE_URL.replace(/\/$/, '');
+  const normalizedPath = BOOKING_ENDPOINT.startsWith('/') ? BOOKING_ENDPOINT : `/${BOOKING_ENDPOINT}`;
+  return `${normalizedBase}${normalizedPath}`;
+};
+
 const SessionForm: React.FC = () => {
   const [form, setForm] = useState<FormState>(EMPTY);
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const set = (key: keyof FormState, value: string) =>
     setForm(prev => ({ ...prev, [key]: value }));
@@ -35,23 +50,43 @@ const SessionForm: React.FC = () => {
         : [...prev.services, s],
     }));
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const body = [
-      `SESIÓN ESTRATÉGICA DÍAZ LARA`,
-      ``,
-      `── CONTACTO ──────────────────────────────`,
-      `Nombre   : ${form.name}`,
-      `Email    : ${form.email}`,
-      `Teléfono : +52 ${form.phone}`,
-      ``,
-      `── SERVICIOS DE INTERÉS ──────────────────`,
-      form.services.join('\n'),
-    ].join('\n');
 
-    const mailto = `mailto:ti@diegodiaz.mx?subject=${encodeURIComponent('Sesión Estratégica — ' + form.name)}&body=${encodeURIComponent(body)}`;
-    window.open(mailto, '_blank');
-    setSubmitted(true);
+    if (form.services.length === 0) {
+      setSubmitError('Selecciona al menos un servicio para continuar.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const response = await fetch(getBookingUrl(), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: form.name.trim(),
+          email: form.email.trim(),
+          phone: `+52${form.phone.trim()}`,
+          services: form.services,
+          source: 'landing-web',
+        }),
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(errorBody || `Error ${response.status} al guardar la reserva.`);
+      }
+
+      setSubmitted(true);
+    } catch {
+      setSubmitError('No pudimos conectar con el backend. Verifica que tu API esté levantada y que VITE_API_URL/VITE_BOOKING_ENDPOINT sean correctos.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (submitted) {
@@ -61,10 +96,14 @@ const SessionForm: React.FC = () => {
           <div className="session-success-icon">✓</div>
           <h2 className="session-success-title">¡Solicitud enviada!</h2>
           <p className="session-success-text">
-            Se abrió tu cliente de correo con la solicitud. Confirmamos en menos de 24 hrs.
+            Tu solicitud se guardó correctamente y te contactaremos en menos de 24 hrs.
           </p>
           <button
-            onClick={() => { setForm(EMPTY); setSubmitted(false); }}
+            onClick={() => {
+              setForm(EMPTY);
+              setSubmitError(null);
+              setSubmitted(false);
+            }}
             className="session-success-btn"
           >Nueva solicitud</button>
         </div>
@@ -155,9 +194,10 @@ const SessionForm: React.FC = () => {
                 </div>
 
                 {/* Submit */}
-                <button type="submit" className="session-submit">
-                  Reserva tu videollamada
+                <button type="submit" className="session-submit" disabled={isSubmitting}>
+                  {isSubmitting ? 'Enviando solicitud...' : 'Reserva tu videollamada'}
                 </button>
+                {submitError && <p className="session-form-error">{submitError}</p>}
               </form>
 
               {/* Right: Info Panel */}
@@ -190,7 +230,7 @@ const SessionForm: React.FC = () => {
                 </div>
 
                 <div className="session-info-footer">
-                  Se abrirá tu correo con la solicitud.<br />
+                  Tus datos se envían de forma segura al sistema.<br />
                   Confirmamos en menos de 24 hrs.
                 </div>
               </div>
