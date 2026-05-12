@@ -73,6 +73,7 @@ const ParallaxBreak: React.FC = () => {
       {/* Video Banner with Text */}
       <div className="parallax-video-banner">
         {/* Video Background */}
+        
         <video
           ref={videoRef}
           className="parallax-video-bg"
