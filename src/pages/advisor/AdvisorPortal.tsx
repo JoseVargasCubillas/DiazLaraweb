@@ -1,9 +1,19 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import './advisor.css';
 import logoMenu from '../../assets/logo menu.png';
 import monograma from '../../assets/monograma.png';
+import { useToast } from '../../components/ui/Toast';
+import { useTheme } from '../../hooks/useTheme';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { Skeleton } from '../../components/ui/Skeleton';
+import { CountUp } from '../../components/ui/CountUp';
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL as string | undefined)?.trim() || 'http://localhost:3000';
+const IS_LOCAL_API = /^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(API_BASE_URL);
+const IS_PRODUCTION_HOST = typeof window !== 'undefined'
+  && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
+const API_NOT_CONFIGURED = IS_LOCAL_API && IS_PRODUCTION_HOST;
 const ADMIN_TOKEN_KEY = 'diazlara_advisor_token';
 
 type View = 'leads' | 'consultores' | 'registrar' | 'cuenta';
@@ -104,6 +114,9 @@ const getInitials = (name: string, lastName?: string) => {
 };
 
 const AdvisorPortal = () => {
+  const toast = useToast();
+  const { theme, toggleTheme } = useTheme();
+
   // Auth
   const [email, setEmail] = useState('contacto@diazlara.mx');
   const [password, setPassword] = useState('');
@@ -111,6 +124,18 @@ const AdvisorPortal = () => {
   const [profile, setProfile] = useState<ConsultorProfile | null>(null);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Leads UX v2
+  const [leadsSearch, setLeadsSearch] = useState('');
+  const [leadsInitiallyLoaded, setLeadsInitiallyLoaded] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<LeadRecord | null>(null);
+  const [confirmDeleteConsultor, setConfirmDeleteConsultor] = useState<ConsultorProfile | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<LeadRecord | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const [scheduleErrors, setScheduleErrors] = useState<Record<string, string>>({});
+  const [consultoresSearch, setConsultoresSearch] = useState('');
+  const [consultoresInitiallyLoaded, setConsultoresInitiallyLoaded] = useState(false);
 
   // Navigation
   const [view, setView] = useState<View>('leads');
@@ -187,6 +212,7 @@ const AdvisorPortal = () => {
     if (!res.ok) throw new Error('No fue posible cargar los leads.');
     const payload = await res.json();
     setLeads(Array.isArray(payload.data) ? payload.data : []);
+    setLeadsInitiallyLoaded(true);
   };
 
   const loadStats = async (nextToken = token) => {
@@ -221,6 +247,7 @@ const AdvisorPortal = () => {
     if (!res.ok) { setConsultoresError('No fue posible cargar los consultores.'); return; }
     const payload = await res.json();
     setConsultores(Array.isArray(payload.data) ? payload.data : []);
+    setConsultoresInitiallyLoaded(true);
   };
 
   // ── Bootstrap ──────────────────────────────────────────────
@@ -315,23 +342,41 @@ const AdvisorPortal = () => {
     await loadLeads();
   };
 
-  const handleReject = async (leadId: string) => {
+  const handleReject = async (leadId: string, motivo: string) => {
     if (!authHeaders) return;
-    const motivo = window.prompt('Motivo del rechazo (opcional):', '') || '';
     const res = await fetch(getAdminUrl(`/api/admin/leads-espera/${leadId}/rechazar`), {
       method: 'PATCH',
       headers: authHeaders,
       body: JSON.stringify({ motivo }),
     });
     if (!res.ok) throw new Error('No fue posible rechazar el lead.');
+    toast.success('Lead rechazado.');
     await loadLeads();
+    await loadStats();
+  };
+
+  const confirmRejectLead = () => {
+    if (!rejectTarget) return;
+    const target = rejectTarget;
+    const motivo = rejectReason.trim();
+    setRejectTarget(null);
+    setRejectReason('');
+    runLeadAction(() => handleReject(target.id, motivo));
   };
 
   const handleScheduleLead = async (leadId: string) => {
     if (!profile || !authHeaders) return;
     const draft = scheduleDrafts[leadId] || defaultScheduleDraft();
-    if (!draft.fecha_hora_inicio) throw new Error('Selecciona fecha y hora para la sesión.');
+    setScheduleErrors((prev) => { const { [leadId]: _, ...rest } = prev; return rest; });
+    if (!draft.fecha_hora_inicio) {
+      setScheduleErrors((prev) => ({ ...prev, [leadId]: 'Selecciona fecha y hora para la sesión.' }));
+      throw new Error('Selecciona fecha y hora para la sesión.');
+    }
     const start = new Date(draft.fecha_hora_inicio);
+    if (start.getTime() < Date.now() - 60_000) {
+      setScheduleErrors((prev) => ({ ...prev, [leadId]: 'La fecha debe ser futura.' }));
+      throw new Error('La fecha debe ser futura.');
+    }
     const end = new Date(start.getTime() + draft.duracion * 60 * 1000);
     const res = await fetch(getAdminUrl(`/api/admin/leads-espera/${leadId}/asignar-sesion`), {
       method: 'POST',
@@ -359,8 +404,10 @@ const AdvisorPortal = () => {
     const payload = await res.json();
     const meetLink = payload?.data?.appointment?.meet_link;
     if (meetLink) setMeetLinks((prev) => ({ ...prev, [leadId]: meetLink }));
+    toast.success('Sesión agendada e invitación enviada.');
     setExpandedLeadId(null);
     await loadLeads();
+    await loadStats();
   };
 
   const updateScheduleDraft = (leadId: string, patch: Partial<ScheduleDraft>) => {
@@ -393,12 +440,16 @@ const AdvisorPortal = () => {
       });
       const payload = await res.json().catch(() => null);
       if (!res.ok) throw new Error(payload?.error || 'No fue posible registrar el consultor.');
-      setRegSuccess(`Consultor "${payload.data?.nombre}" registrado correctamente.`);
+      const msg = `Consultor «${payload.data?.nombre}» registrado correctamente.`;
+      setRegSuccess(msg);
+      toast.success(msg);
       setRegNombre(''); setRegApellido(''); setRegEmail('');
       setRegPassword('');
       await loadConsultores();
     } catch (error) {
-      setRegError(error instanceof Error ? error.message : 'Error al registrar.');
+      const msg = error instanceof Error ? error.message : 'Error al registrar.';
+      setRegError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -406,19 +457,23 @@ const AdvisorPortal = () => {
 
   const handleToggleActivo = async (id: string, activo: boolean) => {
     if (!authHeaders) return;
-    await fetch(getAdminUrl(`/api/admin/consultores/${id}/toggle-activo`), {
-      method: 'PATCH',
-      headers: authHeaders,
-      body: JSON.stringify({ activo }),
-    });
-    await loadConsultores();
+    try {
+      const res = await fetch(getAdminUrl(`/api/admin/consultores/${id}/toggle-activo`), {
+        method: 'PATCH',
+        headers: authHeaders,
+        body: JSON.stringify({ activo }),
+      });
+      if (!res.ok) throw new Error('No fue posible actualizar el estado.');
+      toast.success(activo ? 'Consultor activado.' : 'Consultor desactivado.');
+      await loadConsultores();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Error al actualizar.');
+    }
   };
 
   // ── Delete consultor ───────────────────────────────────────
-  const handleDeleteConsultor = async (c: ConsultorProfile) => {
+  const performDeleteConsultor = async (c: ConsultorProfile) => {
     if (!authHeaders) return;
-    const fullName = `${c.nombre}${c.apellido ? ' ' + c.apellido : ''}`;
-    if (!window.confirm(`¿Seguro que deseas eliminar al consultor "${fullName}"? Esta acción no se puede deshacer.`)) return;
     try {
       const res = await fetch(getAdminUrl(`/api/admin/consultores/${c.id}`), {
         method: 'DELETE',
@@ -428,16 +483,18 @@ const AdvisorPortal = () => {
         const p = await res.json().catch(() => null);
         throw new Error(p?.error?.message || p?.error || 'No fue posible eliminar el consultor.');
       }
+      toast.success(`Consultor «${c.nombre}» eliminado.`);
       await loadConsultores();
     } catch (error) {
-      setConsultoresError(error instanceof Error ? error.message : 'Error al eliminar.');
+      const msg = error instanceof Error ? error.message : 'Error al eliminar.';
+      toast.error(msg);
+      setConsultoresError(msg);
     }
   };
 
   // ── Delete lead ────────────────────────────────────────────
-  const handleDeleteLead = async (lead: LeadRecord) => {
+  const performDeleteLead = async (lead: LeadRecord) => {
     if (!authHeaders) return;
-    if (!window.confirm(`¿Seguro que deseas eliminar el registro de "${lead.nombre}" (${lead.email})? Esta acción no se puede deshacer.`)) return;
     try {
       const res = await fetch(getAdminUrl(`/api/admin/leads-espera/${lead.id}`), {
         method: 'DELETE',
@@ -447,10 +504,12 @@ const AdvisorPortal = () => {
         const p = await res.json().catch(() => null);
         throw new Error(p?.error?.message || p?.error || 'No fue posible eliminar el lead.');
       }
+      toast.success(`Lead «${lead.nombre}» eliminado.`);
       await loadLeads();
       await loadStats();
     } catch (error) {
-      setLeadError(error instanceof Error ? error.message : 'Error al eliminar.');
+      const msg = error instanceof Error ? error.message : 'Error al eliminar.';
+      toast.error(msg);
     }
   };
 
@@ -477,22 +536,85 @@ const AdvisorPortal = () => {
       const payload = await res.json().catch(() => null);
       if (!res.ok) throw new Error(payload?.error?.message || payload?.error || 'No fue posible cambiar la contraseña.');
       setPwdSuccess('Contraseña actualizada correctamente.');
+      toast.success('Contraseña actualizada correctamente.');
       setPwdCurrent(''); setPwdNew(''); setPwdConfirm('');
     } catch (error) {
-      setPwdError(error instanceof Error ? error.message : 'Error al cambiar la contraseña.');
+      const msg = error instanceof Error ? error.message : 'Error al cambiar la contraseña.';
+      setPwdError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
   };
 
+  // Login UX
+  const [showPassword, setShowPassword] = useState(false);
+
+  // ─────────────────────────────────────────────────────────
+  // Derived data
+  // ─────────────────────────────────────────────────────────
+  const filteredLeads = useMemo(() => {
+    const q = leadsSearch.trim().toLowerCase();
+    if (!q) return leads;
+    return leads.filter((l) => {
+      const hay = [l.nombre, l.email, l.empresa, l.puesto, l.telefono_whatsapp]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return hay.includes(q);
+    });
+  }, [leads, leadsSearch]);
+
+  const filteredConsultores = useMemo(() => {
+    const q = consultoresSearch.trim().toLowerCase();
+    if (!q) return consultores;
+    return consultores.filter((c) => {
+      const hay = [c.nombre, c.apellido, c.email, c.especialidad].filter(Boolean).join(' ').toLowerCase();
+      return hay.includes(q);
+    });
+  }, [consultores, consultoresSearch]);
+
   // ─────────────────────────────────────────────────────────
   // LOGIN SCREEN
   // ─────────────────────────────────────────────────────────
-  if (!token || !profile) {
+  // Show a clear message when the production frontend has no API configured.
+  if (API_NOT_CONFIGURED) {
     return (
       <main className="advisor-shell">
         <section className="advisor-login">
           <div className="advisor-login-card">
+            <img src={logoMenu} alt="Díaz Lara" className="advisor-login-logo" />
+            <span className="advisor-kicker">Configuración pendiente</span>
+            <h1 className="advisor-title">Portal no disponible</h1>
+            <p className="advisor-copy">
+              Este sitio se publicó sin una URL de backend configurada (<code>VITE_API_URL</code>).
+              El portal de asesores requiere un servidor backend accesible por HTTPS.
+              Contacta al administrador para terminar la configuración.
+            </p>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  if (!token || !profile) {
+    return (
+      <main className="advisor-shell">
+        <button
+          type="button"
+          className="advisor-theme-toggle advisor-login-theme"
+          onClick={toggleTheme}
+          aria-label={`Cambiar a tema ${theme === 'dark' ? 'claro' : 'oscuro'}`}
+        >
+          {theme === 'dark' ? '☀' : '☾'}
+        </button>
+        <section className="advisor-login">
+          <motion.div
+            className="advisor-login-card"
+            initial={{ opacity: 0, y: 20, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.45, ease: 'easeOut' }}
+          >
             <img src={logoMenu} alt="Díaz Lara" className="advisor-login-logo" />
             <span className="advisor-kicker">Acceso interno</span>
             <h1 className="advisor-title">Portal de asesores</h1>
@@ -511,23 +633,45 @@ const AdvisorPortal = () => {
                   required
                 />
               </div>
-              <div className="advisor-field">
+              <div className="advisor-field advisor-password-field">
                 <label htmlFor="advisor-password">Contraseña</label>
-                <input
-                  id="advisor-password"
-                  type="password"
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
+                <div className="advisor-password-wrap">
+                  <input
+                    id="advisor-password"
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="advisor-password-toggle"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                    tabIndex={-1}
+                  >
+                    {showPassword ? '🙈' : '👁'}
+                  </button>
+                </div>
               </div>
               <button className="advisor-submit" type="submit" disabled={loading}>
                 {loading ? 'Ingresando…' : 'Entrar al portal'}
               </button>
             </form>
-            {loginError && <p className="advisor-error">{loginError}</p>}
-          </div>
+            <AnimatePresence>
+              {loginError && (
+                <motion.p
+                  className="advisor-error"
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                >
+                  {loginError}
+                </motion.p>
+              )}
+            </AnimatePresence>
+          </motion.div>
         </section>
       </main>
     );
@@ -554,6 +698,15 @@ const AdvisorPortal = () => {
             </button>
           </div>
           <div className="advisor-nav-right">
+            <button
+              type="button"
+              className="advisor-theme-toggle"
+              onClick={toggleTheme}
+              aria-label={`Cambiar a tema ${theme === 'dark' ? 'claro' : 'oscuro'}`}
+              title={`Tema ${theme === 'dark' ? 'oscuro' : 'claro'}`}
+            >
+              {theme === 'dark' ? '☀' : '☾'}
+            </button>
             <div className="advisor-user-menu" ref={userMenuRef}>
               <button
                 type="button"
@@ -599,8 +752,20 @@ const AdvisorPortal = () => {
                 </p>
               </div>
               <div className="advisor-header-actions">
-                <button className="advisor-ghost" type="button" onClick={() => runLeadAction(async () => { await loadLeads(); await loadStats(); })} disabled={loading}>
-                  ↺ Actualizar
+                <button
+                  className="advisor-icon-btn"
+                  type="button"
+                  onClick={async () => {
+                    setRefreshing(true);
+                    try { await loadLeads(); await loadStats(); }
+                    finally { setRefreshing(false); }
+                  }}
+                  disabled={refreshing || loading}
+                  aria-label="Actualizar leads"
+                  title="Actualizar"
+                >
+                  <span className={refreshing ? 'icon-spin' : ''} aria-hidden>↻</span>
+                  <span>Actualizar</span>
                 </button>
               </div>
             </header>
@@ -610,12 +775,14 @@ const AdvisorPortal = () => {
                 <button
                   key={e}
                   type="button"
-                  className="advisor-stat"
+                  className={`advisor-stat ${activeEstado === e ? 'is-active' : ''}`}
                   onClick={() => setActiveEstado(e)}
-                  style={{ cursor: 'pointer', textAlign: 'left', font: 'inherit', color: 'inherit' }}
+                  style={{ textAlign: 'left', font: 'inherit', color: 'inherit' }}
                 >
                   <span className="advisor-stat-label">{ESTADO_LABELS[e]}</span>
-                  <span className="advisor-stat-value">{leadStats[e]}</span>
+                  <span className="advisor-stat-value">
+                    <CountUp value={leadStats[e]} />
+                  </span>
                   <span className="advisor-stat-hint">
                     {e === activeEstado ? 'Visualizando' : 'Click para ver'}
                   </span>
@@ -624,34 +791,90 @@ const AdvisorPortal = () => {
             </div>
 
             <div className="advisor-board">
-              <div className="advisor-filters">
-                {(['pendiente', 'aprobado', 'sesion_agendada', 'rechazado'] as LeadEstado[]).map((estado) => (
-                  <button
-                    key={estado}
-                    type="button"
-                    className={`advisor-filter ${activeEstado === estado ? 'active' : ''}`}
-                    onClick={() => setActiveEstado(estado)}
-                  >
-                    {ESTADO_LABELS[estado]}
-                  </button>
-                ))}
+              <div className="advisor-leads-toolbar">
+                <div className="advisor-search">
+                  <span className="advisor-search-icon" aria-hidden>🔍</span>
+                  <input
+                    type="search"
+                    placeholder="Buscar por nombre, email, empresa o teléfono…"
+                    value={leadsSearch}
+                    onChange={(e) => setLeadsSearch(e.target.value)}
+                    aria-label="Buscar leads"
+                  />
+                </div>
+                <div className="advisor-filters">
+                  {(['pendiente', 'aprobado', 'sesion_agendada', 'rechazado'] as LeadEstado[]).map((estado) => (
+                    <button
+                      key={estado}
+                      type="button"
+                      className={`advisor-filter ${activeEstado === estado ? 'active' : ''}`}
+                      onClick={() => setActiveEstado(estado)}
+                    >
+                      {ESTADO_LABELS[estado]}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {leadError && <p className="advisor-error">{leadError}</p>}
-              {loading && <p className="advisor-hint">Cargando…</p>}
 
               <div className="advisor-grid">
-                {leads.length === 0 && !loading && (
-                  <p className="advisor-empty">No hay leads en estado «{ESTADO_LABELS[activeEstado]}».</p>
+                {loading && !leadsInitiallyLoaded && (
+                  <>
+                    {[0, 1, 2].map((i) => (
+                      <article key={`skeleton-${i}`} className="advisor-lead-card advisor-lead-skeleton">
+                        <div className="row">
+                          <Skeleton width={44} height={44} radius="50%" />
+                          <div style={{ display: 'grid', gap: 6, flex: 1 }}>
+                            <Skeleton width="50%" height={16} />
+                            <Skeleton width="35%" height={12} />
+                          </div>
+                        </div>
+                        <Skeleton width="80%" height={12} />
+                        <Skeleton width="60%" height={12} />
+                        <div className="row">
+                          <Skeleton width={90} height={28} radius={8} />
+                          <Skeleton width={120} height={28} radius={8} />
+                        </div>
+                      </article>
+                    ))}
+                  </>
                 )}
 
-                {leads.map((lead) => {
+                {!loading && filteredLeads.length === 0 && (
+                  <div className="advisor-empty-state">
+                    <span className="advisor-empty-icon" aria-hidden>
+                      {leadsSearch ? '🔎' : '📭'}
+                    </span>
+                    <p className="advisor-empty-title">
+                      {leadsSearch
+                        ? 'Sin resultados para tu búsqueda'
+                        : `No hay leads en estado «${ESTADO_LABELS[activeEstado]}»`}
+                    </p>
+                    <p className="advisor-empty-hint">
+                      {leadsSearch
+                        ? 'Prueba con otro término o limpia el filtro.'
+                        : 'Cuando lleguen nuevos registros, aparecerán aquí.'}
+                    </p>
+                  </div>
+                )}
+
+                <AnimatePresence initial={false}>
+                {filteredLeads.map((lead, idx) => {
                   const services = parseServicios(lead.servicios);
                   const scheduleDraft = scheduleDrafts[lead.id] || defaultScheduleDraft();
                   const resolvedMeetLink = meetLinks[lead.id] || lead.cita_meet_link || lead.meet_link;
 
                   return (
-                    <article key={lead.id} className="advisor-lead-card">
+                    <motion.article
+                      key={lead.id}
+                      layout
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.98 }}
+                      transition={{ duration: 0.25, delay: Math.min(idx * 0.04, 0.2) }}
+                      className="advisor-lead-card"
+                    >
                       <div className="advisor-lead-top">
                         <div className="advisor-lead-info">
                           <h2 className="advisor-lead-name">
@@ -734,17 +957,26 @@ const AdvisorPortal = () => {
                           </button>
                         )}
                         {lead.estado !== 'rechazado' && (
-                          <button type="button" className="advisor-action danger" disabled={loading} onClick={() => runLeadAction(() => handleReject(lead.id))}>
+                          <button type="button" className="advisor-action danger" disabled={loading} onClick={() => { setRejectReason(''); setRejectTarget(lead); }}>
                             ✕ Rechazar
                           </button>
                         )}
-                        <button type="button" className="advisor-action danger" disabled={loading} onClick={() => handleDeleteLead(lead)}>
+                        <button type="button" className="advisor-action danger" disabled={loading} onClick={() => setConfirmDelete(lead)}>
                           🗑 Eliminar
                         </button>
                       </div>
 
+                      <AnimatePresence initial={false}>
                       {expandedLeadId === lead.id && (
-                        <div className="advisor-schedule">
+                        <motion.div
+                          key="schedule"
+                          className="advisor-schedule"
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.22, ease: 'easeOut' }}
+                          style={{ overflow: 'hidden' }}
+                        >
                           <p className="advisor-schedule-title">Agendar sesión — se creará evento en Google Calendar y se enviará invitación por correo</p>
                           <div className="advisor-schedule-row">
                             <div className="advisor-field">
@@ -793,14 +1025,19 @@ const AdvisorPortal = () => {
                               placeholder="Observaciones sobre el cliente o la sesión"
                             />
                           </div>
+                          {scheduleErrors[lead.id] && (
+                            <p className="advisor-schedule-error">{scheduleErrors[lead.id]}</p>
+                          )}
                           <button type="button" className="advisor-action" disabled={loading} onClick={() => runLeadAction(() => handleScheduleLead(lead.id))}>
                             {loading ? 'Creando evento…' : '📅 Confirmar y crear Google Meet'}
                           </button>
-                        </div>
+                        </motion.div>
                       )}
-                    </article>
+                      </AnimatePresence>
+                    </motion.article>
                   );
                 })}
+                </AnimatePresence>
               </div>
             </div>
           </>
@@ -816,46 +1053,97 @@ const AdvisorPortal = () => {
                 <p className="advisor-copy">Lista de todos los asesores registrados en el portal.</p>
               </div>
               <div className="advisor-header-actions">
-                <button className="advisor-ghost" type="button" onClick={loadConsultores}>↺ Actualizar</button>
+                <button className="advisor-icon-btn" type="button" onClick={loadConsultores} aria-label="Actualizar consultores">
+                  <span aria-hidden>↻</span>
+                  <span>Actualizar</span>
+                </button>
                 <button className="advisor-submit" type="button" onClick={() => setView('registrar')}>+ Nuevo consultor</button>
               </div>
             </header>
 
             <div className="advisor-board">
+              <div className="advisor-leads-toolbar">
+                <div className="advisor-search">
+                  <span className="advisor-search-icon" aria-hidden>🔍</span>
+                  <input
+                    type="search"
+                    placeholder="Buscar por nombre, email o especialidad…"
+                    value={consultoresSearch}
+                    onChange={(e) => setConsultoresSearch(e.target.value)}
+                    aria-label="Buscar consultores"
+                  />
+                </div>
+              </div>
+
               {consultoresError && <p className="advisor-error">{consultoresError}</p>}
-              {consultores.length === 0 && !consultoresError && (
-                <p className="advisor-empty">No hay consultores registrados.</p>
-              )}
-              <div className="advisor-consultor-list">
-                {consultores.map((c) => (
-                  <div key={c.id} className="advisor-consultor-row">
-                    <span className="advisor-avatar">{getInitials(c.nombre, c.apellido)}</span>
-                    <div className="advisor-consultor-info">
-                      <p className="advisor-consultor-name">{c.nombre}{c.apellido ? ` ${c.apellido}` : ''}</p>
-                      <p className="advisor-consultor-meta">
-                        {c.email}
-                        {c.especialidad ? ` · ${c.especialidad}` : ''}
-                      </p>
+
+              {!consultoresInitiallyLoaded && (
+                <div className="advisor-consultor-list">
+                  {[0, 1, 2].map((i) => (
+                    <div key={`csk-${i}`} className="advisor-consultor-row">
+                      <Skeleton width={44} height={44} radius="50%" />
+                      <div style={{ display: 'grid', gap: 6, flex: 1 }}>
+                        <Skeleton width="40%" height={14} />
+                        <Skeleton width="60%" height={12} />
+                      </div>
+                      <Skeleton width={80} height={28} radius={8} />
                     </div>
-                    <span className={`advisor-pill ${c.activo ? 'on' : 'off'}`}>
-                      {c.activo ? 'Activo' : 'Inactivo'}
-                    </span>
-                    <button
-                      type="button"
-                      className={c.activo ? 'advisor-ghost' : 'advisor-action'}
-                      onClick={() => handleToggleActivo(c.id, !c.activo)}
+                  ))}
+                </div>
+              )}
+
+              {consultoresInitiallyLoaded && filteredConsultores.length === 0 && (
+                <div className="advisor-empty-state">
+                  <span className="advisor-empty-icon" aria-hidden>{consultoresSearch ? '🔎' : '👥'}</span>
+                  <p className="advisor-empty-title">
+                    {consultoresSearch ? 'Sin resultados' : 'No hay consultores registrados'}
+                  </p>
+                  <p className="advisor-empty-hint">
+                    {consultoresSearch ? 'Prueba con otro término.' : 'Crea el primer asesor para comenzar.'}
+                  </p>
+                </div>
+              )}
+
+              <div className="advisor-consultor-list">
+                <AnimatePresence initial={false}>
+                  {filteredConsultores.map((c, idx) => (
+                    <motion.div
+                      key={c.id}
+                      layout
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.98 }}
+                      transition={{ duration: 0.22, delay: Math.min(idx * 0.03, 0.15) }}
+                      className="advisor-consultor-row"
                     >
-                      {c.activo ? 'Desactivar' : 'Activar'}
-                    </button>
-                    <button
-                      type="button"
-                      className="advisor-action danger"
-                      onClick={() => handleDeleteConsultor(c)}
-                    >
-                      Eliminar
-                    </button>
-                  </div>
-                ))}
+                      <span className="advisor-avatar">{getInitials(c.nombre, c.apellido)}</span>
+                      <div className="advisor-consultor-info">
+                        <p className="advisor-consultor-name">{c.nombre}{c.apellido ? ` ${c.apellido}` : ''}</p>
+                        <p className="advisor-consultor-meta">
+                          {c.email}
+                          {c.especialidad ? ` · ${c.especialidad}` : ''}
+                        </p>
+                      </div>
+                      <span className={`advisor-pill ${c.activo ? 'on' : 'off'}`}>
+                        {c.activo ? 'Activo' : 'Inactivo'}
+                      </span>
+                      <button
+                        type="button"
+                        className={c.activo ? 'advisor-ghost' : 'advisor-action'}
+                        onClick={() => handleToggleActivo(c.id, !c.activo)}
+                      >
+                        {c.activo ? 'Desactivar' : 'Activar'}
+                      </button>
+                      <button
+                        type="button"
+                        className="advisor-action danger"
+                        onClick={() => setConfirmDeleteConsultor(c)}
+                      >
+                        Eliminar
+                      </button>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               </div>
             </div>
           </>
@@ -952,6 +1240,97 @@ const AdvisorPortal = () => {
         )}
 
       </section>
+
+      {/* ── Modales ───────────────────────────────────── */}
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title="Eliminar lead"
+        description={confirmDelete ? `¿Seguro que deseas eliminar el registro de "${confirmDelete.nombre}" (${confirmDelete.email})? Esta acción no se puede deshacer.` : ''}
+        confirmLabel="Eliminar"
+        variant="danger"
+        loading={loading}
+        onCancel={() => setConfirmDelete(null)}
+        onConfirm={async () => {
+          if (!confirmDelete) return;
+          const target = confirmDelete;
+          setConfirmDelete(null);
+          await performDeleteLead(target);
+        }}
+      />
+
+      <ConfirmDialog
+        open={!!confirmDeleteConsultor}
+        title="Eliminar consultor"
+        description={confirmDeleteConsultor ? `¿Seguro que deseas eliminar al consultor "${confirmDeleteConsultor.nombre}${confirmDeleteConsultor.apellido ? ' ' + confirmDeleteConsultor.apellido : ''}"? Esta acción no se puede deshacer.` : ''}
+        confirmLabel="Eliminar"
+        variant="danger"
+        loading={loading}
+        onCancel={() => setConfirmDeleteConsultor(null)}
+        onConfirm={async () => {
+          if (!confirmDeleteConsultor) return;
+          const target = confirmDeleteConsultor;
+          setConfirmDeleteConsultor(null);
+          await performDeleteConsultor(target);
+        }}
+      />
+
+      <AnimatePresence>
+        {rejectTarget && (
+          <motion.div
+            className="ui-modal-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            onClick={() => { setRejectTarget(null); setRejectReason(''); }}
+          >
+            <motion.div
+              className="ui-modal"
+              role="dialog"
+              aria-modal="true"
+              initial={{ opacity: 0, y: 16, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.97 }}
+              transition={{ type: 'spring', stiffness: 360, damping: 30 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className="ui-modal-title">Rechazar lead</h2>
+              <p className="ui-modal-desc">
+                ¿Por qué rechazas a <strong>{rejectTarget.nombre}</strong>? El motivo se guardará para auditoría.
+              </p>
+              <div className="advisor-field" style={{ marginBottom: 16 }}>
+                <label htmlFor="reject-reason">Motivo (opcional)</label>
+                <input
+                  id="reject-reason"
+                  type="text"
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  placeholder="Ej. No es perfil objetivo, datos inválidos…"
+                  autoFocus
+                />
+              </div>
+              <div className="ui-modal-actions">
+                <button
+                  type="button"
+                  className="ui-modal-btn ui-modal-btn-ghost"
+                  onClick={() => { setRejectTarget(null); setRejectReason(''); }}
+                  disabled={loading}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="ui-modal-btn ui-modal-btn-danger"
+                  onClick={confirmRejectLead}
+                  disabled={loading}
+                >
+                  Confirmar rechazo
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
   );
 };

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import LandingPage from './pages/landing/LandingPage';
 import AdvisorPortal from './pages/advisor/AdvisorPortal';
+import { ToastProvider } from './components/ui/Toast';
 
 const isAdvisorRoute = () => {
   const { pathname, hash } = window.location;
@@ -23,7 +24,11 @@ function App() {
   }, []);
 
   if (showAdvisorPortal) {
-    return <AdvisorPortal />;
+    return (
+      <ToastProvider>
+        <AdvisorPortal />
+      </ToastProvider>
+    );
   }
 
   return <LandingPage />;
