@@ -68,9 +68,9 @@ const SessionForm: React.FC = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name: form.name.trim(),
+          nombre: form.name.trim(),
           email: form.email.trim(),
-          phone: `+52${form.phone.trim()}`,
+          telefono_whatsapp: `+52${form.phone.trim()}`,
           services: form.services,
           source: 'landing-web',
         }),
