@@ -67,13 +67,13 @@ const SessionForm: React.FC = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          nombre: form.name.trim(),
-          email: form.email.trim(),
-          telefono_whatsapp: `+52${form.phone.trim()}`,
-          services: form.services,
-          source: 'landing-web',
-        }),
+       body: JSON.stringify({
+  name: form.name.trim(),
+  email: form.email.trim(),
+  phone: form.phone.trim(),
+  services: form.services,
+  source: 'landing-web',
+}),
       });
 
       if (!response.ok) {
