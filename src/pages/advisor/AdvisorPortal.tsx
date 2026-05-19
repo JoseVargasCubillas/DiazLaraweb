@@ -46,6 +46,7 @@ type ConsultorProfile = {
   apellido?: string;
   email: string;
   especialidad?: string;
+  rol?: 'consultant' | 'super_admin';
   activo?: boolean;
 };
 
@@ -178,6 +179,7 @@ const AdvisorPortal = () => {
   const [regApellido, setRegApellido] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
+  const [regRol, setRegRol] = useState<'consultant' | 'super_admin'>('consultant');
   const [regError, setRegError] = useState<string | null>(null);
   const [regSuccess, setRegSuccess] = useState<string | null>(null);
 
@@ -191,6 +193,7 @@ const AdvisorPortal = () => {
   const authHeaders = token
     ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
     : undefined;
+  const isSuperAdmin = profile?.rol === 'super_admin';
 
   // ── Loaders ────────────────────────────────────────────────
   const loadProfile = async (nextToken: string) => {
@@ -281,8 +284,14 @@ const AdvisorPortal = () => {
   }, [activeEstado]);
 
   useEffect(() => {
-    if (view === 'consultores' && token) loadConsultores();
-  }, [view]);
+    if (view === 'consultores' && token && isSuperAdmin) loadConsultores();
+  }, [view, isSuperAdmin]);
+
+  useEffect(() => {
+    if (profile && !isSuperAdmin && (view === 'consultores' || view === 'registrar')) {
+      setView('leads');
+    }
+  }, [profile, isSuperAdmin, view]);
 
   // ── Auth handlers ──────────────────────────────────────────
   const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -436,6 +445,7 @@ const AdvisorPortal = () => {
           apellido: regApellido.trim() || undefined,
           email: regEmail.trim(),
           password: regPassword,
+          rol: regRol,
         }),
       });
       const payload = await res.json().catch(() => null);
@@ -445,6 +455,7 @@ const AdvisorPortal = () => {
       toast.success(msg);
       setRegNombre(''); setRegApellido(''); setRegEmail('');
       setRegPassword('');
+      setRegRol('consultant');
       await loadConsultores();
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Error al registrar.';
@@ -693,9 +704,11 @@ const AdvisorPortal = () => {
             <button type="button" className={`advisor-nav-tab ${view === 'leads' ? 'active' : ''}`} onClick={() => setView('leads')}>
               Leads
             </button>
-            <button type="button" className={`advisor-nav-tab ${view === 'consultores' ? 'active' : ''}`} onClick={() => setView('consultores')}>
-              Consultores
-            </button>
+            {isSuperAdmin && (
+              <button type="button" className={`advisor-nav-tab ${view === 'consultores' ? 'active' : ''}`} onClick={() => setView('consultores')}>
+                Administración
+              </button>
+            )}
           </div>
           <div className="advisor-nav-right">
             <button
@@ -724,6 +737,7 @@ const AdvisorPortal = () => {
                   <div className="advisor-user-dropdown-header">
                     <p className="advisor-user-dropdown-name">{profile.nombre}{profile.apellido ? ` ${profile.apellido}` : ''}</p>
                     <p className="advisor-user-dropdown-email">{profile.email}</p>
+                    <p className="advisor-user-dropdown-email">{isSuperAdmin ? 'Administrador' : 'Consultor'}</p>
                   </div>
                   <button type="button" className="advisor-user-dropdown-item" onClick={() => { setUserMenuOpen(false); setView('cuenta'); }}>
                     Mi cuenta
@@ -1049,8 +1063,8 @@ const AdvisorPortal = () => {
             <header className="advisor-header">
               <div>
                 <span className="advisor-kicker">Equipo</span>
-                <h1 className="advisor-title">Consultores</h1>
-                <p className="advisor-copy">Lista de todos los asesores registrados en el portal.</p>
+                <h1 className="advisor-title">Administración</h1>
+                <p className="advisor-copy">Gestiona consultores, accesos y permisos del portal.</p>
               </div>
               <div className="advisor-header-actions">
                 <button className="advisor-icon-btn" type="button" onClick={loadConsultores} aria-label="Actualizar consultores">
@@ -1124,6 +1138,9 @@ const AdvisorPortal = () => {
                           {c.especialidad ? ` · ${c.especialidad}` : ''}
                         </p>
                       </div>
+                      <span className={`advisor-pill ${c.rol === 'super_admin' ? 'on' : ''}`}>
+                        {c.rol === 'super_admin' ? 'Admin' : 'Consultor'}
+                      </span>
                       <span className={`advisor-pill ${c.activo ? 'on' : 'off'}`}>
                         {c.activo ? 'Activo' : 'Inactivo'}
                       </span>
@@ -1179,6 +1196,13 @@ const AdvisorPortal = () => {
                 <div className="advisor-field">
                   <label htmlFor="reg-password">Contraseña inicial *</label>
                   <input id="reg-password" type="password" value={regPassword} onChange={(e) => setRegPassword(e.target.value)} placeholder="Mínimo 6 caracteres" required />
+                </div>
+                <div className="advisor-field">
+                  <label htmlFor="reg-rol">Rol *</label>
+                  <select id="reg-rol" value={regRol} onChange={(e) => setRegRol(e.target.value as 'consultant' | 'super_admin')}>
+                    <option value="consultant">Consultor</option>
+                    <option value="super_admin">Administrador</option>
+                  </select>
                 </div>
                 <div className="advisor-register-actions">
                   <button type="submit" className="advisor-submit" disabled={loading}>
