@@ -22,19 +22,23 @@ type DiagData = {
   q85: string; q86: string;
 };
 
-const blank = (): DiagData => ({
-  q01: '', q02: '', q03: '', q04: '', q05: '', q06: '', q07: [], q08: '', q09: '', q10: '',
-  q11: '', q12: '', q13: '', q14: '', q15: '', q16: '', q17: '', q18: '', q19: '', q20: '',
-  q21: '', q22: '', q23: '', q24: '', q25: '', q26: '', q27: '', q28: '', q29: '', q30: '',
-  q31: '', q32: '', q33: '', q34: '', q35: '', q36: '', q37: '', q38: '', q39: '', q40: '',
-  q41: [], q42: '', q43: '', q44: '', q45: '', q46: '', q47: '', q48: [], q49: '', q50: '',
-  q51: '', q52: '', q53: '', q54: '', q55: [], q56: '', q57: '', q58: '', q59: '', q60: '',
-  q61: [], q62: '', q63: '', q64: '', q65: '', q66: '', q67: '', q68: '', q69: '', q70: [],
-  q71: [], q72: '', q73: '', q74: '', q75: '', q76: [], q77: '', q78: '', q79: [], q80: [],
-  q81: [], q82: '', q83: [], q84: '', q85: '', q86: '',
-});
+function blank(): DiagData {
+  return {
+    q01: '', q02: '', q03: '', q04: '', q05: '', q06: '', q07: [], q08: '', q09: '', q10: '',
+    q11: '', q12: '', q13: '', q14: '', q15: '', q16: '', q17: '', q18: '', q19: '', q20: '',
+    q21: '', q22: '', q23: '', q24: '', q25: '', q26: '', q27: '', q28: '', q29: '', q30: '',
+    q31: '', q32: '', q33: '', q34: '', q35: '', q36: '', q37: '', q38: '', q39: '', q40: '',
+    q41: [], q42: '', q43: '', q44: '', q45: '', q46: '', q47: '', q48: [], q49: '', q50: '',
+    q51: '', q52: '', q53: '', q54: '', q55: [], q56: '', q57: '', q58: '', q59: '', q60: '',
+    q61: [], q62: '', q63: '', q64: '', q65: '', q66: '', q67: '', q68: '', q69: '', q70: [],
+    q71: [], q72: '', q73: '', q74: '', q75: '', q76: [], q77: '', q78: '', q79: [], q80: [],
+    q81: [], q82: '', q83: [], q84: '', q85: '', q86: '',
+  };
+}
 
-const STORE_KEY = (id: string) => `diag_v1_${id}`;
+function storeKey(id: string) { return 'diag_v1_' + id; }
+
+const ALL_SECTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -42,127 +46,135 @@ interface DiagnosticoFormProps {
   clientId: string;
 }
 
-export const DiagnosticoForm = ({ clientId }: DiagnosticoFormProps) => {
+function DiagnosticoForm({ clientId }: DiagnosticoFormProps) {
   const toast = useToast();
 
-  const [data, setData] = useState<DiagData>(() => {
+  const [data, setData] = useState<DiagData>(function init() {
     try {
-      const raw = localStorage.getItem(STORE_KEY(clientId));
-      return raw ? { ...blank(), ...JSON.parse(raw) } : blank();
-    } catch {
+      const raw = localStorage.getItem(storeKey(clientId));
+      return raw ? Object.assign(blank(), JSON.parse(raw)) : blank();
+    } catch (_e) {
       return blank();
     }
   });
 
-  const [savedAt, setSavedAt] = useState<string | null>(() => {
-    try { return localStorage.getItem(`${STORE_KEY(clientId)}_ts`) || null; } catch { return null; }
+  const [savedAt, setSavedAt] = useState<string | null>(function initTs() {
+    try { return localStorage.getItem(storeKey(clientId) + '_ts') || null; } catch (_e) { return null; }
   });
 
-  const [openSections, setOpenSections] = useState<Set<number>>(
-    () => new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
-  );
+  const [openSections, setOpenSections] = useState<number[]>(ALL_SECTIONS);
 
   // ── Setters ────────────────────────────────────────────────────────────────
 
-  const st = (f: keyof DiagData, v: string | string[]) =>
-    setData(prev => ({ ...prev, [f]: v }));
+  function st(f: keyof DiagData, v: string | string[]) {
+    setData(function(prev) { return Object.assign({}, prev, { [f]: v }); });
+  }
 
-  const tog = (f: keyof DiagData, v: string) => {
+  function tog(f: keyof DiagData, v: string) {
     const cur = data[f] as string[];
-    st(f, cur.includes(v) ? cur.filter(x => x !== v) : [...cur, v]);
-  };
+    st(f, cur.includes(v) ? cur.filter(function(x) { return x !== v; }) : cur.concat([v]));
+  }
 
-  const toggleSection = (n: number) =>
-    setOpenSections(prev => {
-      const next = new Set(prev);
-      next.has(n) ? next.delete(n) : next.add(n);
-      return next;
+  function toggleSection(n: number) {
+    setOpenSections(function(prev) {
+      return prev.includes(n) ? prev.filter(function(x) { return x !== n; }) : prev.concat([n]);
     });
+  }
 
-  const handleSave = () => {
+  function handleSave() {
     try {
-      localStorage.setItem(STORE_KEY(clientId), JSON.stringify(data));
+      localStorage.setItem(storeKey(clientId), JSON.stringify(data));
       const ts = new Date().toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' });
-      localStorage.setItem(`${STORE_KEY(clientId)}_ts`, ts);
+      localStorage.setItem(storeKey(clientId) + '_ts', ts);
       setSavedAt(ts);
       toast.success('Diagnóstico guardado.');
-    } catch {
+    } catch (_e) {
       toast.error('No fue posible guardar el diagnóstico.');
     }
-  };
+  }
 
   // ── Render helpers ─────────────────────────────────────────────────────────
 
-  const tf = (label: string, f: keyof DiagData, ph?: string) => (
-    <div className="advisor-field">
-      <label>{label}</label>
-      <input
-        type="text"
-        value={data[f] as string}
-        onChange={e => st(f, e.target.value)}
-        placeholder={ph}
-      />
-    </div>
-  );
+  function tf(label: string, f: keyof DiagData, ph?: string) {
+    return (
+      <div className="advisor-field">
+        <label>{label}</label>
+        <input
+          type="text"
+          value={data[f] as string}
+          onChange={function(e) { st(f, e.target.value); }}
+          placeholder={ph}
+        />
+      </div>
+    );
+  }
 
-  const df = (label: string, f: keyof DiagData) => (
-    <div className="advisor-field">
-      <label>{label}</label>
-      <input type="date" value={data[f] as string} onChange={e => st(f, e.target.value)} />
-    </div>
-  );
+  function df(label: string, f: keyof DiagData) {
+    return (
+      <div className="advisor-field">
+        <label>{label}</label>
+        <input type="date" value={data[f] as string} onChange={function(e) { st(f, e.target.value); }} />
+      </div>
+    );
+  }
 
-  const ta = (label: string, f: keyof DiagData, rows = 3) => (
-    <div className="advisor-field">
-      <label>{label}</label>
-      <textarea value={data[f] as string} onChange={e => st(f, e.target.value)} rows={rows} />
-    </div>
-  );
+  function ta(label: string, f: keyof DiagData, rows?: number) {
+    return (
+      <div className="advisor-field">
+        <label>{label}</label>
+        <textarea value={data[f] as string} onChange={function(e) { st(f, e.target.value); }} rows={rows || 3} />
+      </div>
+    );
+  }
 
-  const sel = (label: string, f: keyof DiagData, opts: string[]) => (
-    <div className="advisor-field">
-      <label>{label}</label>
-      <select value={data[f] as string} onChange={e => st(f, e.target.value)}>
-        <option value="">— Selecciona —</option>
-        {opts.map(o => <option key={o} value={o}>{o}</option>)}
-      </select>
-    </div>
-  );
+  function sel(label: string, f: keyof DiagData, opts: string[]) {
+    return (
+      <div className="advisor-field">
+        <label>{label}</label>
+        <select value={data[f] as string} onChange={function(e) { st(f, e.target.value); }}>
+          <option value="">— Selecciona —</option>
+          {opts.map(function(o) { return <option key={o} value={o}>{o}</option>; })}
+        </select>
+      </div>
+    );
+  }
 
-  const chk = (label: string, f: keyof DiagData, opts: string[]) => {
+  function chk(label: string, f: keyof DiagData, opts: string[]) {
     const val = data[f] as string[];
     return (
       <div className="advisor-field">
         <label>{label}</label>
         <div className="diag-checkbox-grid">
-          {opts.map(o => (
-            <label key={o} className={`diag-checkbox-item${val.includes(o) ? ' is-checked' : ''}`}>
-              <input type="checkbox" checked={val.includes(o)} onChange={() => tog(f, o)} />
-              <span>{o}</span>
-            </label>
-          ))}
+          {opts.map(function(o) {
+            return (
+              <label key={o} className={'diag-checkbox-item' + (val.includes(o) ? ' is-checked' : '')}>
+                <input type="checkbox" checked={val.includes(o)} onChange={function() { tog(f, o); }} />
+                <span>{o}</span>
+              </label>
+            );
+          })}
         </div>
       </div>
     );
-  };
+  }
 
-  const row2 = (a: React.ReactNode, b: React.ReactNode) => (
-    <div className="advisor-register-row">{a}{b}</div>
-  );
+  function row2(a: React.ReactNode, b: React.ReactNode) {
+    return <div className="advisor-register-row">{a}{b}</div>;
+  }
 
-  const section = (num: number, title: string, fields: React.ReactNode[], extraClass?: string) => {
-    const open = openSections.has(num);
+  function section(num: number, title: string, fields: React.ReactNode[], extraClass?: string) {
+    const open = openSections.includes(num);
     return (
-      <div className={`diag-section${extraClass ? ` ${extraClass}` : ''}`}>
+      <div className={'diag-section' + (extraClass ? ' ' + extraClass : '')}>
         <button
           type="button"
           className="diag-section-head"
-          onClick={() => toggleSection(num)}
+          onClick={function() { toggleSection(num); }}
           aria-expanded={open}
         >
           <span className="diag-section-num">Sección {num}</span>
           <span className="diag-section-title">{title}</span>
-          <span className="diag-section-chevron" aria-hidden>{open ? '▲' : '▼'}</span>
+          <span className="diag-section-chevron" aria-hidden="true">{open ? '▲' : '▼'}</span>
         </button>
         <AnimatePresence initial={false}>
           {open && (
@@ -175,15 +187,15 @@ export const DiagnosticoForm = ({ clientId }: DiagnosticoFormProps) => {
               transition={{ duration: 0.2, ease: 'easeOut' }}
               style={{ overflow: 'hidden' }}
             >
-              {fields.map((field, i) => (
-                <React.Fragment key={i}>{field}</React.Fragment>
-              ))}
+              {fields.map(function(field, i) {
+                return <React.Fragment key={i}>{field}</React.Fragment>;
+              })}
             </motion.div>
           )}
         </AnimatePresence>
       </div>
     );
-  };
+  }
 
   // ── JSX ────────────────────────────────────────────────────────────────────
 
@@ -204,33 +216,31 @@ export const DiagnosticoForm = ({ clientId }: DiagnosticoFormProps) => {
         </div>
       </div>
 
-      {/* ── Sección 1 ── */}
       {section(1, 'Información General del Cliente', [
         row2(
           tf('1. Nombre completo / Razón social', 'q01'),
-          tf('2. RFC', 'q02'),
+          tf('2. RFC', 'q02')
         ),
         tf('3. Giro principal de la empresa', 'q03'),
         ta('4. Actividades secundarias o líneas de negocio adicionales', 'q04'),
         row2(
           df('5. Fecha de inicio de operaciones', 'q05'),
-          tf('6. Ciudad y estado donde opera principalmente', 'q06'),
+          tf('6. Ciudad y estado donde opera principalmente', 'q06')
         ),
         chk('7. Países donde tiene presencia u operaciones', 'q07',
           ['México', 'Estados Unidos', 'Panamá', 'Latinoamérica', 'Europa', 'Asia', 'Otro']),
         tf('8. Página web y/o redes sociales', 'q08'),
         row2(
           tf('9. Nombre del contacto principal', 'q09'),
-          tf('10. Puesto del contacto principal', 'q10'),
+          tf('10. Puesto del contacto principal', 'q10')
         ),
         row2(
           tf('11. Teléfono de contacto', 'q11'),
-          tf('12. Correo electrónico', 'q12'),
+          tf('12. Correo electrónico', 'q12')
         ),
         tf('13. ¿Quién refirió al cliente o cómo llegó con nosotros?', 'q13'),
       ])}
 
-      {/* ── Sección 2 ── */}
       {section(2, 'Contexto y Estructura Empresarial', [
         ta('14. Describe brevemente cómo inició la empresa y su evolución.', 'q14'),
         sel('15. ¿Actualmente opera como?', 'q15',
@@ -238,26 +248,19 @@ export const DiagnosticoForm = ({ clientId }: DiagnosticoFormProps) => {
         sel('16. ¿Cuántas empresas forman parte actualmente de la operación?', 'q16',
           ['1', '2 a 3', '4 a 6', 'Más de 6']),
         ta('17. Describe brevemente qué función cumple cada empresa.', 'q17'),
-        sel('18. ¿Cuenta con holding empresarial?', 'q18',
-          ['Sí', 'No', 'En proceso']),
-        sel('19. ¿Cuenta con empresas relacionadas o partes relacionadas?', 'q19',
-          ['Sí', 'No']),
+        sel('18. ¿Cuenta con holding empresarial?', 'q18', ['Sí', 'No', 'En proceso']),
+        sel('19. ¿Cuenta con empresas relacionadas o partes relacionadas?', 'q19', ['Sí', 'No']),
         ta('20. Describe cómo se relacionan entre sí las empresas o partes relacionadas.', 'q20'),
-        sel('21. ¿Cuenta con operaciones internacionales?', 'q21',
-          ['Sí', 'No']),
+        sel('21. ¿Cuenta con operaciones internacionales?', 'q21', ['Sí', 'No']),
         ta('22. Describa cómo funcionan actualmente las operaciones internacionales.', 'q22'),
-        sel('23. ¿Cuenta con LLC, entidades extranjeras o estructuras fuera de México?', 'q23',
-          ['Sí', 'No']),
+        sel('23. ¿Cuenta con LLC, entidades extranjeras o estructuras fuera de México?', 'q23', ['Sí', 'No']),
         ta('24. Describir estructura internacional actual.', 'q24'),
-        sel('25. ¿Cuenta con socios, accionistas o inversionistas?', 'q25',
-          ['Sí', 'No']),
+        sel('25. ¿Cuenta con socios, accionistas o inversionistas?', 'q25', ['Sí', 'No']),
         ta('26. Describir socios, porcentajes y nivel de participación operativa.', 'q26'),
-        sel('27. ¿Existen acuerdos entre socios formalizados?', 'q27',
-          ['Sí', 'No', 'Parcialmente']),
+        sel('27. ¿Existen acuerdos entre socios formalizados?', 'q27', ['Sí', 'No', 'Parcialmente']),
         ta('28. ¿Cómo se toman actualmente las decisiones importantes?', 'q28'),
       ])}
 
-      {/* ── Sección 3 ── */}
       {section(3, 'Operación y Recursos Humanos', [
         sel('29. Número aproximado de trabajadores', 'q29',
           ['1 a 10', '11 a 30', '31 a 50', '51 a 100', '101 a 300', 'Más de 300']),
@@ -274,7 +277,6 @@ export const DiagnosticoForm = ({ clientId }: DiagnosticoFormProps) => {
         ta('36. Observaciones relevantes sobre operación interna', 'q36'),
       ])}
 
-      {/* ── Sección 4 ── */}
       {section(4, 'Información Financiera y Fiscal', [
         sel('37. Facturación anual aproximada', 'q37',
           ['Menos de $10M', '$10M a $30M', '$30M a $50M', '$50M a $100M', '$100M a $500M', 'Más de $500M']),
@@ -284,25 +286,24 @@ export const DiagnosticoForm = ({ clientId }: DiagnosticoFormProps) => {
         sel('40. ¿Cuenta actualmente con estrategia fiscal?', 'q40',
           ['Sí', 'No', 'No está seguro']),
         chk('41. ¿Ha recibido requerimientos, auditorías o revisiones por parte de autoridades?', 'q41',
-          ['SAT', 'IMSS', 'INFONAVIT', 'Restricción de sello digital', 'Cartas invitación', 'Créditos fiscales', 'Demandas laborales', 'Multas', 'Ninguno']),
+          ['SAT', 'IMSS', 'INFONAVIT', 'Restricción de sello digital', 'Cartas invitación',
+           'Créditos fiscales', 'Demandas laborales', 'Multas', 'Ninguno']),
         ta('42. Describa brevemente los problemas o situaciones presentadas.', 'q42'),
         sel('43. ¿Existen declaraciones, obligaciones o trámites pendientes?', 'q43',
           ['Sí', 'No', 'No está seguro']),
         sel('44. ¿Existen ejercicios fiscales con pérdidas recurrentes o utilidades mínimas?', 'q44',
           ['Sí', 'No', 'No está seguro']),
-        sel('45. ¿Existen operaciones relevantes con partes relacionadas?', 'q45',
-          ['Sí', 'No']),
+        sel('45. ¿Existen operaciones relevantes con partes relacionadas?', 'q45', ['Sí', 'No']),
         ta('46. Describir operaciones relevantes entre empresas relacionadas.', 'q46'),
         ta('47. Observaciones fiscales relevantes', 'q47'),
       ])}
 
-      {/* ── Sección 5 ── */}
       {section(5, 'Socios, Formas de Cobro y Flujo de Dinero', [
         chk('48. ¿Cómo reciben ingresos actualmente los socios/directivos?', 'q48',
-          ['Nómina', 'Honorarios', 'Dividendos', 'Comisiones', 'Regalías', 'Arrendamiento', 'Retiros informales', 'Otro']),
+          ['Nómina', 'Honorarios', 'Dividendos', 'Comisiones', 'Regalías',
+           'Arrendamiento', 'Retiros informales', 'Otro']),
         ta('49. Describir estructura actual de pagos a socios/directivos.', 'q49'),
-        sel('50. ¿Existen préstamos, retiros o aportaciones vigentes?', 'q50',
-          ['Sí', 'No']),
+        sel('50. ¿Existen préstamos, retiros o aportaciones vigentes?', 'q50', ['Sí', 'No']),
         ta('51. En caso afirmativo, describir estructura y soporte documental.', 'q51'),
         sel('52. ¿Existen contratos formales que respalden las formas de cobro?', 'q52',
           ['Sí', 'No', 'Parcialmente']),
@@ -310,7 +311,6 @@ export const DiagnosticoForm = ({ clientId }: DiagnosticoFormProps) => {
           ['Sí', 'No', 'Parcialmente']),
       ])}
 
-      {/* ── Sección 6 ── */}
       {section(6, 'Activos, Patrimonio y Protección', [
         sel('54. ¿Cuenta con inmuebles?', 'q54', ['Sí', 'No']),
         chk('55. ¿A nombre de quién se encuentran los inmuebles?', 'q55',
@@ -325,7 +325,6 @@ export const DiagnosticoForm = ({ clientId }: DiagnosticoFormProps) => {
           ['Sí', 'No', 'En proceso']),
       ])}
 
-      {/* ── Sección 7 ── */}
       {section(7, 'Activos Intangibles', [
         chk('61. ¿Cuenta con activos intangibles?', 'q61',
           ['Marca registrada', 'Marca no registrada', 'Software propio', 'Plataforma digital',
@@ -334,12 +333,10 @@ export const DiagnosticoForm = ({ clientId }: DiagnosticoFormProps) => {
         ta('62. Describa los activos intangibles más importantes.', 'q62'),
         sel('63. ¿Los activos se encuentran protegidos legalmente?', 'q63',
           ['Sí', 'No', 'Parcialmente']),
-        sel('64. ¿Actualmente generan ingresos?', 'q64',
-          ['Sí', 'No', 'Parcialmente']),
+        sel('64. ¿Actualmente generan ingresos?', 'q64', ['Sí', 'No', 'Parcialmente']),
         sel('65. ¿Existe valuación formal de dichos activos?', 'q65', ['Sí', 'No']),
       ])}
 
-      {/* ── Sección 8 ── */}
       {section(8, 'Contratos, Materialidad y Cumplimiento', [
         sel('66. ¿Cuenta con contratos formales con clientes, proveedores o aliados?', 'q66',
           ['Sí', 'No', 'Parcialmente']),
@@ -350,7 +347,6 @@ export const DiagnosticoForm = ({ clientId }: DiagnosticoFormProps) => {
         ta('69. Observaciones relevantes sobre contratos y materialidad', 'q69'),
       ])}
 
-      {/* ── Sección 9 ── */}
       {section(9, 'Necesidades, Preocupaciones y Objetivos', [
         chk('70. ¿Qué le preocupa actualmente?', 'q70',
           ['Pago elevado de impuestos', 'Riesgo SAT', 'Problemas entre socios', 'Riesgos laborales',
@@ -369,7 +365,6 @@ export const DiagnosticoForm = ({ clientId }: DiagnosticoFormProps) => {
           ['Inmediato', 'Próximos 30 días', 'Próximos 90 días', 'Planeación anual', 'Exploratorio']),
       ])}
 
-      {/* ── Sección 10 ── */}
       {section(10, 'Documentación Disponible', [
         chk('76. Documentación proporcionada por el cliente', 'q76',
           ['Constancia de situación fiscal', 'Declaraciones anuales', 'Balanza de comprobación',
@@ -378,10 +373,8 @@ export const DiagnosticoForm = ({ clientId }: DiagnosticoFormProps) => {
         ta('77. Documentación pendiente por solicitar', 'q77'),
       ])}
 
-      {/* ── Sección 11 — Uso interno ── */}
       {section(11, 'Diagnóstico Interno — Uso Exclusivo del Equipo', [
-        sel('78. Nivel de oportunidad detectado', 'q78',
-          ['Bajo', 'Medio', 'Alto', 'Premium']),
+        sel('78. Nivel de oportunidad detectado', 'q78', ['Bajo', 'Medio', 'Alto', 'Premium']),
         chk('79. Perfil del cliente', 'q79',
           ['Conservador', 'Agresivo', 'Técnico', 'Emocional', 'Ordenado',
            'Desordenado', 'Abierto a estrategia', 'Resistente al cambio']),
@@ -400,7 +393,7 @@ export const DiagnosticoForm = ({ clientId }: DiagnosticoFormProps) => {
         sel('84. Prioridad del caso', 'q84', ['Baja', 'Media', 'Alta', 'Urgente']),
         row2(
           tf('85. Responsable asignado', 'q85'),
-          df('86. Fecha tentativa de siguiente reunión', 'q86'),
+          df('86. Fecha tentativa de siguiente reunión', 'q86')
         ),
       ], 'diag-section-internal')}
 
@@ -412,4 +405,7 @@ export const DiagnosticoForm = ({ clientId }: DiagnosticoFormProps) => {
       </div>
     </div>
   );
-};
+}
+
+export { DiagnosticoForm };
+export default DiagnosticoForm;

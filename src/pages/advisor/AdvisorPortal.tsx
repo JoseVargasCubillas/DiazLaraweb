@@ -8,7 +8,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { CountUp } from '../../components/ui/CountUp';
-import { DiagnosticoForm } from './DiagnosticoForm';
+import DiagnosticoForm from './DiagnosticoForm';
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL as string | undefined)?.trim() || 'http://localhost:3000';
 const IS_LOCAL_API = /^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(API_BASE_URL);
