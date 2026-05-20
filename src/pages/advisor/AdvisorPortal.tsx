@@ -16,7 +16,7 @@ const IS_PRODUCTION_HOST = typeof window !== 'undefined'
 const API_NOT_CONFIGURED = IS_LOCAL_API && IS_PRODUCTION_HOST;
 const ADMIN_TOKEN_KEY = 'diazlara_advisor_token';
 
-type View = 'leads' | 'consultores' | 'registrar' | 'cuenta';
+type View = 'leads' | 'clientes_consultor' | 'agregar_cliente' | 'historico_clientes' | 'consultores' | 'registrar' | 'cuenta';
 
 const formatSessionDate = (iso?: string | null) => {
   if (!iso) return '';
@@ -75,6 +75,50 @@ type LeadRecord = {
   consultor_email?: string | null;
 };
 
+type ManualClientRecord = {
+  id: string;
+  consultor_id: string;
+  nombre: string;
+  apellido?: string | null;
+  email: string;
+  telefono_whatsapp?: string | null;
+  empresa?: string | null;
+  puesto?: string | null;
+  servicios?: string[] | string | null;
+  fuente_registro?: string | null;
+  estatus_comercial?: EstatusComercial | string | null;
+  notas?: string | null;
+  created_at?: string | null;
+  consultor_nombre?: string | null;
+  consultor_apellido?: string | null;
+  consultor_email?: string | null;
+};
+
+type HistoryRecord = {
+  id: string;
+  lead_id?: string | null;
+  cliente_id?: string | null;
+  cliente_manual_id?: string | null;
+  consultor_id?: string | null;
+  tipo_origen?: string | null;
+  fuente_registro?: string | null;
+  nombre: string;
+  email: string;
+  telefono_whatsapp?: string | null;
+  empresa?: string | null;
+  puesto?: string | null;
+  servicios?: string[] | string | null;
+  etiqueta?: string | null;
+  motivo?: string | null;
+  estado_lead?: string | null;
+  estado_cita?: string | null;
+  estatus_comercial?: string | null;
+  meet_link?: string | null;
+  fecha_hora_inicio?: string | null;
+  fecha_hora_fin?: string | null;
+  archived_at?: string | null;
+};
+
 type ScheduleDraft = {
   fecha_hora_inicio: string;
   duracion: number;
@@ -91,7 +135,7 @@ const defaultScheduleDraft = (): ScheduleDraft => ({
 
 const getAdminUrl = (path: string) => `${API_BASE_URL.replace(/\/$/, '')}${path}`;
 
-const parseServicios = (servicios: LeadRecord['servicios']) => {
+const parseServicios = (servicios: string[] | string | null | undefined) => {
   if (Array.isArray(servicios)) {
     return servicios;
   }
@@ -114,6 +158,11 @@ const getInitials = (name: string, lastName?: string) => {
   return (a + b) || '?';
 };
 
+const formatHistoryTag = (tag?: string | null) => {
+  if (!tag) return '';
+  return tag.replace(/_/g, ' ').replace(/^cliente\s+/i, '').trim();
+};
+
 const AdvisorPortal = () => {
   const toast = useToast();
   const { theme, toggleTheme } = useTheme();
@@ -125,6 +174,7 @@ const AdvisorPortal = () => {
   const [profile, setProfile] = useState<ConsultorProfile | null>(null);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingAction, setLoadingAction] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   // Leads UX v2
@@ -137,6 +187,15 @@ const AdvisorPortal = () => {
   const [scheduleErrors, setScheduleErrors] = useState<Record<string, string>>({});
   const [consultoresSearch, setConsultoresSearch] = useState('');
   const [consultoresInitiallyLoaded, setConsultoresInitiallyLoaded] = useState(false);
+  const [clientsSearch, setClientsSearch] = useState('');
+  const [clientsInitiallyLoaded, setClientsInitiallyLoaded] = useState(false);
+  const [historySearch, setHistorySearch] = useState('');
+  const [historyInitiallyLoaded, setHistoryInitiallyLoaded] = useState(false);
+  const [confirmArchiveClient, setConfirmArchiveClient] = useState<ManualClientRecord | null>(null);
+  const [selectedClient, setSelectedClient] = useState<ManualClientRecord | null>(null);
+  const [expandedClientId, setExpandedClientId] = useState<string | null>(null);
+  const [selectedHistory, setSelectedHistory] = useState<HistoryRecord | null>(null);
+  const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null);
 
   // Navigation
   const [view, setView] = useState<View>('leads');
@@ -166,6 +225,14 @@ const AdvisorPortal = () => {
   const [consultores, setConsultores] = useState<ConsultorProfile[]>([]);
   const [consultoresError, setConsultoresError] = useState<string | null>(null);
 
+  // Manual clients
+  const [manualClients, setManualClients] = useState<ManualClientRecord[]>([]);
+  const [manualClientsError, setManualClientsError] = useState<string | null>(null);
+
+  // Client history
+  const [clientHistory, setClientHistory] = useState<HistoryRecord[]>([]);
+  const [clientHistoryError, setClientHistoryError] = useState<string | null>(null);
+
   // Stats
   const [leadStats, setLeadStats] = useState<Record<LeadEstado, number>>({
     pendiente: 0,
@@ -182,6 +249,19 @@ const AdvisorPortal = () => {
   const [regRol, setRegRol] = useState<'consultant' | 'super_admin'>('consultant');
   const [regError, setRegError] = useState<string | null>(null);
   const [regSuccess, setRegSuccess] = useState<string | null>(null);
+
+  // Register manual client
+  const [clientNombre, setClientNombre] = useState('');
+  const [clientApellido, setClientApellido] = useState('');
+  const [clientEmail, setClientEmail] = useState('');
+  const [clientTelefono, setClientTelefono] = useState('');
+  const [clientEmpresa, setClientEmpresa] = useState('');
+  const [clientPuesto, setClientPuesto] = useState('');
+  const [clientServicios, setClientServicios] = useState('');
+  const [clientNotas, setClientNotas] = useState('');
+  const [clientConsultorId, setClientConsultorId] = useState('');
+  const [clientError, setClientError] = useState<string | null>(null);
+  const [clientSuccess, setClientSuccess] = useState<string | null>(null);
 
   // Change password
   const [pwdCurrent, setPwdCurrent] = useState('');
@@ -246,11 +326,43 @@ const AdvisorPortal = () => {
   const loadConsultores = async () => {
     if (!authHeaders) return;
     setConsultoresError(null);
-    const res = await fetch(getAdminUrl('/api/admin/consultores'), { headers: authHeaders });
-    if (!res.ok) { setConsultoresError('No fue posible cargar los consultores.'); return; }
-    const payload = await res.json();
-    setConsultores(Array.isArray(payload.data) ? payload.data : []);
-    setConsultoresInitiallyLoaded(true);
+    try {
+      const res = await fetch(getAdminUrl('/api/admin/consultores'), { headers: authHeaders });
+      if (!res.ok) { setConsultoresError('No fue posible cargar los consultores.'); return; }
+      const payload = await res.json();
+      setConsultores(Array.isArray(payload.data) ? payload.data : []);
+      setConsultoresInitiallyLoaded(true);
+    } catch {
+      setConsultoresError('Error de conexión al cargar los consultores.');
+    }
+  };
+
+  const loadManualClients = async () => {
+    if (!authHeaders) return;
+    setManualClientsError(null);
+    try {
+      const res = await fetch(getAdminUrl('/api/admin/clientes-consultor?limit=100'), { headers: authHeaders });
+      if (!res.ok) { setManualClientsError('No fue posible cargar los clientes.'); return; }
+      const payload = await res.json();
+      setManualClients(Array.isArray(payload.data) ? payload.data : []);
+      setClientsInitiallyLoaded(true);
+    } catch {
+      setManualClientsError('Error de conexión al cargar los clientes.');
+    }
+  };
+
+  const loadClientHistory = async () => {
+    if (!authHeaders) return;
+    setClientHistoryError(null);
+    try {
+      const res = await fetch(getAdminUrl('/api/admin/historico-clientes?limit=100'), { headers: authHeaders });
+      if (!res.ok) { setClientHistoryError('No fue posible cargar el historico.'); return; }
+      const payload = await res.json();
+      setClientHistory(Array.isArray(payload.data) ? payload.data : []);
+      setHistoryInitiallyLoaded(true);
+    } catch {
+      setClientHistoryError('Error de conexión al cargar el historico.');
+    }
   };
 
   // ── Bootstrap ──────────────────────────────────────────────
@@ -280,11 +392,20 @@ const AdvisorPortal = () => {
 
   useEffect(() => {
     if (!token || !profile) return;
-    loadLeads().catch(() => setLeadError('No fue posible actualizar los leads.'));
+    loadLeads(token, activeEstado).catch(() => setLeadError('No fue posible actualizar los leads.'));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeEstado]);
 
   useEffect(() => {
     if (view === 'consultores' && token && isSuperAdmin) loadConsultores();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, isSuperAdmin]);
+
+  useEffect(() => {
+    if (view === 'clientes_consultor' && token) loadManualClients();
+    if (view === 'historico_clientes' && token) loadClientHistory();
+    if (view === 'agregar_cliente' && token && isSuperAdmin && !consultoresInitiallyLoaded) loadConsultores();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, isSuperAdmin]);
 
   useEffect(() => {
@@ -323,20 +444,28 @@ const AdvisorPortal = () => {
     setProfile(null);
     setLeads([]);
     setConsultores([]);
+    setManualClients([]);
+    setClientHistory([]);
+    setSelectedClient(null);
+    setExpandedClientId(null);
+    setSelectedHistory(null);
+    setExpandedHistoryId(null);
     setExpandedLeadId(null);
     setLeadError(null);
+    setManualClientsError(null);
+    setClientHistoryError(null);
   };
 
   // ── Lead actions ───────────────────────────────────────────
   const runLeadAction = async (action: () => Promise<void>) => {
     try {
       setLeadError(null);
-      setLoading(true);
+      setLoadingAction(true);
       await action();
     } catch (error) {
       setLeadError(error instanceof Error ? error.message : 'No fue posible completar la acción.');
     } finally {
-      setLoading(false);
+      setLoadingAction(false);
     }
   };
 
@@ -507,6 +636,7 @@ const AdvisorPortal = () => {
   const performDeleteLead = async (lead: LeadRecord) => {
     if (!authHeaders) return;
     try {
+      setLoadingAction(true);
       const res = await fetch(getAdminUrl(`/api/admin/leads-espera/${lead.id}`), {
         method: 'DELETE',
         headers: authHeaders,
@@ -521,6 +651,87 @@ const AdvisorPortal = () => {
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Error al eliminar.';
       toast.error(msg);
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
+  const resetClientForm = () => {
+    setClientNombre('');
+    setClientApellido('');
+    setClientEmail('');
+    setClientTelefono('');
+    setClientEmpresa('');
+    setClientPuesto('');
+    setClientServicios('');
+    setClientNotas('');
+    setClientConsultorId('');
+  };
+
+  const handleCreateManualClient = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setClientError(null);
+    setClientSuccess(null);
+    try {
+      if (!authHeaders) return;
+      setLoading(true);
+      const servicios = clientServicios
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean);
+      const res = await fetch(getAdminUrl('/api/admin/clientes-consultor'), {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({
+          nombre: clientNombre.trim(),
+          apellido: clientApellido.trim() || undefined,
+          email: clientEmail.trim(),
+          telefono_whatsapp: clientTelefono.trim() || undefined,
+          empresa: clientEmpresa.trim() || undefined,
+          puesto: clientPuesto.trim() || undefined,
+          servicios,
+          fuente_registro: 'manual_consultor',
+          estatus_comercial: 'cliente',
+          notas: clientNotas.trim() || undefined,
+          consultor_id: isSuperAdmin ? clientConsultorId || undefined : undefined,
+        }),
+      });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(payload?.error?.message || payload?.error || 'No fue posible agregar el cliente.');
+      const msg = `Cliente "${payload.data?.nombre || clientNombre}" agregado correctamente.`;
+      setClientSuccess(msg);
+      toast.success(msg);
+      resetClientForm();
+      await loadManualClients();
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Error al agregar cliente.';
+      setClientError(msg);
+      toast.error(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const performArchiveManualClient = async (client: ManualClientRecord) => {
+    if (!authHeaders) return;
+    try {
+      setLoading(true);
+      const res = await fetch(getAdminUrl(`/api/admin/clientes-consultor/${client.id}`), {
+        method: 'DELETE',
+        headers: authHeaders,
+        body: JSON.stringify({ etiqueta: 'cliente_removido' }),
+      });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(payload?.error?.message || payload?.error || 'No fue posible mover el cliente al historico.');
+      toast.success(`Cliente "${client.nombre}" movido al historico.`);
+      await loadManualClients();
+      if (historyInitiallyLoaded) await loadClientHistory();
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Error al archivar cliente.';
+      toast.error(msg);
+      setManualClientsError(msg);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -584,6 +795,47 @@ const AdvisorPortal = () => {
       return hay.includes(q);
     });
   }, [consultores, consultoresSearch]);
+
+  const filteredManualClients = useMemo(() => {
+    const q = clientsSearch.trim().toLowerCase();
+    if (!q) return manualClients;
+    return manualClients.filter((client) => {
+      const hay = [
+        client.nombre,
+        client.apellido,
+        client.email,
+        client.telefono_whatsapp,
+        client.empresa,
+        client.puesto,
+        client.consultor_nombre,
+        client.consultor_apellido,
+      ].filter(Boolean).join(' ').toLowerCase();
+      return hay.includes(q);
+    });
+  }, [manualClients, clientsSearch]);
+
+  const filteredClientHistory = useMemo(() => {
+    const q = historySearch.trim().toLowerCase();
+    if (!q) return clientHistory;
+    return clientHistory.filter((item) => {
+      const hay = [
+        item.nombre,
+        item.email,
+        item.telefono_whatsapp,
+        item.empresa,
+        item.puesto,
+        item.tipo_origen,
+        item.etiqueta,
+        item.motivo,
+      ].filter(Boolean).join(' ').toLowerCase();
+      return hay.includes(q);
+    });
+  }, [clientHistory, historySearch]);
+
+  const selectedClientServices = useMemo(
+    () => (selectedClient ? parseServicios(selectedClient.servicios) : []),
+    [selectedClient]
+  );
 
   // ─────────────────────────────────────────────────────────
   // LOGIN SCREEN
@@ -703,6 +955,12 @@ const AdvisorPortal = () => {
           <div className="advisor-nav-tabs">
             <button type="button" className={`advisor-nav-tab ${view === 'leads' ? 'active' : ''}`} onClick={() => setView('leads')}>
               Leads
+            </button>
+            <button type="button" className={`advisor-nav-tab ${view === 'clientes_consultor' || view === 'agregar_cliente' ? 'active' : ''}`} onClick={() => setView('clientes_consultor')}>
+              Clientes
+            </button>
+            <button type="button" className={`advisor-nav-tab ${view === 'historico_clientes' ? 'active' : ''}`} onClick={() => setView('historico_clientes')}>
+              Historico
             </button>
             {isSuperAdmin && (
               <button type="button" className={`advisor-nav-tab ${view === 'consultores' ? 'active' : ''}`} onClick={() => setView('consultores')}>
@@ -957,7 +1215,7 @@ const AdvisorPortal = () => {
 
                       <div className="advisor-lead-actions">
                         {lead.estado === 'pendiente' && (
-                          <button type="button" className="advisor-action" disabled={loading} onClick={() => runLeadAction(() => handleApprove(lead.id))}>
+                          <button type="button" className="advisor-action" disabled={loadingAction} onClick={() => runLeadAction(() => handleApprove(lead.id))}>
                             ✓ Aprobar
                           </button>
                         )}
@@ -971,11 +1229,11 @@ const AdvisorPortal = () => {
                           </button>
                         )}
                         {lead.estado !== 'rechazado' && (
-                          <button type="button" className="advisor-action danger" disabled={loading} onClick={() => { setRejectReason(''); setRejectTarget(lead); }}>
+                          <button type="button" className="advisor-action danger" disabled={loadingAction} onClick={() => { setRejectReason(''); setRejectTarget(lead); }}>
                             ✕ Rechazar
                           </button>
                         )}
-                        <button type="button" className="advisor-action danger" disabled={loading} onClick={() => setConfirmDelete(lead)}>
+                        <button type="button" className="advisor-action danger" disabled={loadingAction} onClick={() => setConfirmDelete(lead)}>
                           🗑 Eliminar
                         </button>
                       </div>
@@ -1042,8 +1300,8 @@ const AdvisorPortal = () => {
                           {scheduleErrors[lead.id] && (
                             <p className="advisor-schedule-error">{scheduleErrors[lead.id]}</p>
                           )}
-                          <button type="button" className="advisor-action" disabled={loading} onClick={() => runLeadAction(() => handleScheduleLead(lead.id))}>
-                            {loading ? 'Creando evento…' : '📅 Confirmar y crear Google Meet'}
+                          <button type="button" className="advisor-action" disabled={loadingAction} onClick={() => runLeadAction(() => handleScheduleLead(lead.id))}>
+                            {loadingAction ? 'Creando evento…' : '📅 Confirmar y crear Google Meet'}
                           </button>
                         </motion.div>
                       )}
@@ -1054,6 +1312,529 @@ const AdvisorPortal = () => {
                 </AnimatePresence>
               </div>
             </div>
+          </>
+        )}
+
+        {view === 'clientes_consultor' && (
+          <>
+            <header className="advisor-header">
+              <div>
+                <span className="advisor-kicker">Clientes consultores</span>
+                <h1 className="advisor-title">Clientes</h1>
+                <p className="advisor-copy">Consulta clientes agregados manualmente por el equipo y registra nuevos clientes no organicos.</p>
+              </div>
+              <div className="advisor-header-actions">
+                <button className="advisor-icon-btn" type="button" onClick={loadManualClients} aria-label="Actualizar clientes">
+                  <span aria-hidden>↻</span>
+                  <span>Actualizar</span>
+                </button>
+                <button className="advisor-submit" type="button" onClick={() => setView('agregar_cliente')}>+ Agregar cliente</button>
+              </div>
+            </header>
+
+            {selectedClient ? (
+              <div className="advisor-board advisor-client-detail-view">
+                <button type="button" className="advisor-ghost advisor-client-back" onClick={() => setSelectedClient(null)}>
+                  Volver a clientes
+                </button>
+                <div className="advisor-client-detail-hero">
+                  <span className="advisor-avatar advisor-client-detail-avatar">{getInitials(selectedClient.nombre, selectedClient.apellido || undefined)}</span>
+                  <div>
+                    <span className="advisor-kicker">Vista del cliente</span>
+                    <h2 className="advisor-client-detail-title">{selectedClient.nombre}{selectedClient.apellido ? ` ${selectedClient.apellido}` : ''}</h2>
+                    <p className="advisor-consultor-meta">{selectedClient.email}</p>
+                  </div>
+                  <span className={`advisor-badge ${ESTATUS_COLORS[selectedClient.estatus_comercial as EstatusComercial] || ''}`}>
+                    {selectedClient.estatus_comercial || 'cliente'}
+                  </span>
+                </div>
+
+                <div className="advisor-client-detail-grid">
+                  <div className="advisor-client-detail-block">
+                    <span>Telefono</span>
+                    {selectedClient.telefono_whatsapp ? (
+                      <a href={`https://wa.me/${selectedClient.telefono_whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer">{selectedClient.telefono_whatsapp}</a>
+                    ) : (
+                      <strong>No registrado</strong>
+                    )}
+                  </div>
+                  <div className="advisor-client-detail-block">
+                    <span>Empresa</span>
+                    <strong>{selectedClient.empresa || 'No registrada'}</strong>
+                  </div>
+                  <div className="advisor-client-detail-block">
+                    <span>Puesto</span>
+                    <strong>{selectedClient.puesto || 'No registrado'}</strong>
+                  </div>
+                  <div className="advisor-client-detail-block">
+                    <span>Consultor</span>
+                    <strong>{[selectedClient.consultor_nombre, selectedClient.consultor_apellido].filter(Boolean).join(' ') || 'Sin asignar'}</strong>
+                  </div>
+                  <div className="advisor-client-detail-block">
+                    <span>Fuente</span>
+                    <strong>{selectedClient.fuente_registro || 'manual_consultor'}</strong>
+                  </div>
+                  <div className="advisor-client-detail-block">
+                    <span>Registro</span>
+                    <strong>
+                      {selectedClient.created_at
+                        ? new Date(selectedClient.created_at).toLocaleDateString('es-MX', { dateStyle: 'medium' })
+                        : 'Sin fecha'}
+                    </strong>
+                  </div>
+                </div>
+
+                {selectedClientServices.length > 0 && (
+                  <div className="advisor-client-detail-section">
+                    <span className="advisor-client-section-label">Servicios</span>
+                    <div className="advisor-services advisor-services-compact">
+                      {selectedClientServices.map((service) => <span key={service} className="advisor-service">{service}</span>)}
+                    </div>
+                  </div>
+                )}
+
+                <div className="advisor-client-detail-section">
+                  <span className="advisor-client-section-label">Notas</span>
+                  <p className="advisor-client-detail-note">{selectedClient.notas || 'Sin notas internas registradas.'}</p>
+                </div>
+
+                <div className="advisor-client-card-actions">
+                  <button type="button" className="advisor-action danger" disabled={loading} onClick={() => setConfirmArchiveClient(selectedClient)}>
+                    Mover a historico
+                  </button>
+                </div>
+              </div>
+            ) : (
+            <>
+            <div className="advisor-client-summary">
+              <div>
+                <h2>Gestion de Clientes</h2>
+                <p>Administra y consulta la informacion de tus clientes</p>
+              </div>
+              <div className="advisor-client-count">
+                <strong>{manualClients.length}</strong>
+                <span>Clientes</span>
+              </div>
+            </div>
+
+            <div className="advisor-client-search-row">
+              <div className="advisor-leads-toolbar">
+                <div className="advisor-search">
+                  <span className="advisor-search-icon" aria-hidden>🔍</span>
+                  <input
+                    type="search"
+                    placeholder="Buscar cliente o empresa"
+                    value={clientsSearch}
+                    onChange={(e) => setClientsSearch(e.target.value)}
+                    aria-label="Buscar clientes"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="advisor-board advisor-client-board">
+
+              {manualClientsError && <p className="advisor-error">{manualClientsError}</p>}
+
+              {!clientsInitiallyLoaded && (
+                <div className="advisor-consultor-list">
+                  {[0, 1, 2].map((i) => (
+                    <div key={`client-skeleton-${i}`} className="advisor-consultor-row">
+                      <Skeleton width={44} height={44} radius="50%" />
+                      <div style={{ display: 'grid', gap: 6, flex: 1 }}>
+                        <Skeleton width="42%" height={14} />
+                        <Skeleton width="64%" height={12} />
+                      </div>
+                      <Skeleton width={92} height={28} radius={8} />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {clientsInitiallyLoaded && filteredManualClients.length === 0 && (
+                <div className="advisor-empty-state">
+                  <span className="advisor-empty-icon" aria-hidden>{clientsSearch ? '🔎' : '👥'}</span>
+                  <p className="advisor-empty-title">{clientsSearch ? 'Sin resultados' : 'No hay clientes registrados'}</p>
+                  <p className="advisor-empty-hint">{clientsSearch ? 'Prueba con otro termino.' : 'Agrega el primer cliente para verlo aqui.'}</p>
+                </div>
+              )}
+
+              <div className="advisor-client-grid">
+                <AnimatePresence initial={false}>
+                  {filteredManualClients.map((client, idx) => {
+                    const services = parseServicios(client.servicios);
+                    const consultorName = [client.consultor_nombre, client.consultor_apellido].filter(Boolean).join(' ');
+                    const isExpanded = expandedClientId === client.id;
+                    return (
+                      <motion.article
+                        key={client.id}
+                        layout
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.98 }}
+                        transition={{ duration: 0.22, delay: Math.min(idx * 0.03, 0.15) }}
+                        className={`advisor-client-card ${isExpanded ? 'is-expanded' : ''}`}
+                        onClick={() => setExpandedClientId((current) => current === client.id ? null : client.id)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setExpandedClientId((current) => current === client.id ? null : client.id);
+                          }
+                        }}
+                      >
+                        <div className="advisor-client-card-head">
+                          <span className="advisor-avatar advisor-client-card-avatar">{getInitials(client.nombre, client.apellido || undefined)}</span>
+                          <div className="advisor-consultor-info">
+                            <p className="advisor-consultor-name">{client.nombre}{client.apellido ? ` ${client.apellido}` : ''}</p>
+                            <p className="advisor-consultor-meta">{client.empresa || 'Sin empresa registrada'}</p>
+                          </div>
+                          {client.estatus_comercial && (
+                            <span className={`advisor-badge ${ESTATUS_COLORS[client.estatus_comercial as EstatusComercial] || ''}`}>
+                              {client.estatus_comercial}
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="advisor-client-compact-meta">
+                          <span>{client.email}</span>
+                        </p>
+
+                        <AnimatePresence initial={false}>
+                          {isExpanded && (
+                            <motion.div
+                              className="advisor-client-card-body"
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.18, ease: 'easeOut' }}
+                              style={{ overflow: 'hidden' }}
+                            >
+                              <div className="advisor-client-card-facts">
+                                <p className="advisor-client-fact">
+                                  <span>Correo</span>
+                                  <strong>{client.email}</strong>
+                                </p>
+                                <p className="advisor-client-fact">
+                                  <span>Puesto</span>
+                                  <strong>{client.puesto || 'Sin puesto'}</strong>
+                                </p>
+                                <p className="advisor-client-fact">
+                                  <span>Telefono</span>
+                                  <strong>{client.telefono_whatsapp || 'Sin telefono'}</strong>
+                                </p>
+                              </div>
+                              <div className="advisor-client-card-tags">
+                                {consultorName && <span className="advisor-client-tag">Consultor: {consultorName}</span>}
+                                <span className="advisor-client-tag muted">{client.fuente_registro || 'manual_consultor'}</span>
+                              </div>
+                              {services.length > 0 && (
+                                <div className="advisor-services advisor-services-compact">
+                                  {services.slice(0, 3).map((service) => <span key={service} className="advisor-service">{service}</span>)}
+                                </div>
+                              )}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+
+                        <div className="advisor-client-card-actions">
+                          <span className="advisor-client-card-hint">{isExpanded ? 'Detalle rapido abierto' : 'Click para desplegar'}</span>
+                          <button
+                            type="button"
+                            className="advisor-client-expand"
+                            aria-label={`Ver detalle de ${client.nombre}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedClient(client);
+                            }}
+                          >
+                           Ver cliente
+                          </button>
+                        </div>
+                      </motion.article>
+                    );
+                  })}
+                </AnimatePresence>
+              </div>
+            </div>
+            </>
+            )}
+          </>
+        )}
+
+        {view === 'agregar_cliente' && (
+          <>
+            <header className="advisor-header">
+              <div>
+                <span className="advisor-kicker">Nuevo cliente</span>
+                <h1 className="advisor-title">Agregar cliente</h1>
+                <p className="advisor-copy">Registra clientes no organicos en CLIENTES_CONSULTOR.</p>
+              </div>
+            </header>
+
+            <div className="advisor-board advisor-register-board">
+              <form className="advisor-form advisor-register-form" onSubmit={handleCreateManualClient} noValidate>
+                <div className="advisor-register-row">
+                  <div className="advisor-field">
+                    <label htmlFor="client-nombre">Nombre *</label>
+                    <input id="client-nombre" type="text" value={clientNombre} onChange={(e) => setClientNombre(e.target.value)} placeholder="Nombre" required />
+                  </div>
+                  <div className="advisor-field">
+                    <label htmlFor="client-apellido">Apellido</label>
+                    <input id="client-apellido" type="text" value={clientApellido} onChange={(e) => setClientApellido(e.target.value)} placeholder="Apellido (opcional)" />
+                  </div>
+                </div>
+                <div className="advisor-field">
+                  <label htmlFor="client-email">Correo electronico *</label>
+                  <input id="client-email" type="email" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} placeholder="cliente@empresa.com" required />
+                </div>
+                <div className="advisor-field">
+                  <label htmlFor="client-telefono">Telefono / WhatsApp</label>
+                  <input id="client-telefono" type="tel" value={clientTelefono} onChange={(e) => setClientTelefono(e.target.value)} placeholder="+52..." />
+                </div>
+                <div className="advisor-register-row">
+                  <div className="advisor-field">
+                    <label htmlFor="client-empresa">Empresa</label>
+                    <input id="client-empresa" type="text" value={clientEmpresa} onChange={(e) => setClientEmpresa(e.target.value)} placeholder="Empresa" />
+                  </div>
+                  <div className="advisor-field">
+                    <label htmlFor="client-puesto">Puesto</label>
+                    <input id="client-puesto" type="text" value={clientPuesto} onChange={(e) => setClientPuesto(e.target.value)} placeholder="Puesto" />
+                  </div>
+                </div>
+                <div className="advisor-field">
+                  <label htmlFor="client-servicios">Servicios</label>
+                  <input id="client-servicios" type="text" value={clientServicios} onChange={(e) => setClientServicios(e.target.value)} placeholder="Fiscal, Contable, Financiera" />
+                </div>
+                {isSuperAdmin && (
+                  <div className="advisor-register-row">
+                    <div className="advisor-field">
+                      <label htmlFor="client-consultor">Consultor asignado</label>
+                      <select id="client-consultor" value={clientConsultorId} onChange={(e) => setClientConsultorId(e.target.value)}>
+                        <option value="">Mi usuario</option>
+                        {consultores.map((c) => (
+                          <option key={c.id} value={c.id}>{c.nombre}{c.apellido ? ` ${c.apellido}` : ''}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+                <div className="advisor-field">
+                  <label htmlFor="client-notas">Notas</label>
+                  <textarea id="client-notas" value={clientNotas} onChange={(e) => setClientNotas(e.target.value)} placeholder="Notas internas del cliente" rows={4} />
+                </div>
+                <div className="advisor-register-actions">
+                  <button type="submit" className="advisor-submit" disabled={loading}>
+                    {loading ? 'Guardando...' : 'Agregar cliente'}
+                  </button>
+                  <button type="button" className="advisor-ghost" onClick={() => setView('clientes_consultor')}>
+                    Ver clientes
+                  </button>
+                </div>
+                {clientError && <p className="advisor-error">{clientError}</p>}
+                {clientSuccess && <p className="advisor-success">{clientSuccess}</p>}
+              </form>
+            </div>
+          </>
+        )}
+
+        {view === 'historico_clientes' && (
+          <>
+            <header className="advisor-header">
+              <div>
+                <span className="advisor-kicker">Historico clientes</span>
+                <h1 className="advisor-title">Historico</h1>
+                <p className="advisor-copy">Consulta clientes y leads archivados desde el portal.</p>
+              </div>
+              <div className="advisor-header-actions">
+                <button className="advisor-icon-btn" type="button" onClick={loadClientHistory} aria-label="Actualizar historico">
+                  <span aria-hidden>↻</span>
+                  <span>Actualizar</span>
+                </button>
+              </div>
+            </header>
+
+            {selectedHistory ? (
+              <div className="advisor-board advisor-client-detail-view">
+                <button type="button" className="advisor-ghost advisor-client-back" onClick={() => setSelectedHistory(null)}>
+                  Volver al historico
+                </button>
+                <div className="advisor-client-detail-hero">
+                  <span className="advisor-avatar advisor-client-detail-avatar">{getInitials(selectedHistory.nombre)}</span>
+                  <div>
+                    <span className="advisor-kicker">Registro historico</span>
+                    <h2 className="advisor-client-detail-title">{selectedHistory.nombre}</h2>
+                    <p className="advisor-consultor-meta">{selectedHistory.email}</p>
+                  </div>
+                  {selectedHistory.etiqueta && <span className="advisor-pill off">{selectedHistory.etiqueta}</span>}
+                </div>
+                <div className="advisor-client-detail-grid">
+                  <div className="advisor-client-detail-block"><span>Origen</span><strong>{selectedHistory.tipo_origen || 'Sin origen'}</strong></div>
+                  <div className="advisor-client-detail-block"><span>Empresa</span><strong>{selectedHistory.empresa || 'No registrada'}</strong></div>
+                  <div className="advisor-client-detail-block"><span>Puesto</span><strong>{selectedHistory.puesto || 'No registrado'}</strong></div>
+                  <div className="advisor-client-detail-block"><span>Telefono</span><strong>{selectedHistory.telefono_whatsapp || 'No registrado'}</strong></div>
+                  <div className="advisor-client-detail-block"><span>Estatus</span><strong>{selectedHistory.estatus_comercial || selectedHistory.estado_lead || 'Sin estatus'}</strong></div>
+                  <div className="advisor-client-detail-block"><span>Archivado</span><strong>{selectedHistory.archived_at ? new Date(selectedHistory.archived_at).toLocaleDateString('es-MX', { dateStyle: 'medium' }) : 'Sin fecha'}</strong></div>
+                </div>
+                {parseServicios(selectedHistory.servicios).length > 0 && (
+                  <div className="advisor-client-detail-section">
+                    <span className="advisor-client-section-label">Servicios</span>
+                    <div className="advisor-services advisor-services-compact">
+                      {parseServicios(selectedHistory.servicios).map((service) => <span key={service} className="advisor-service">{service}</span>)}
+                    </div>
+                  </div>
+                )}
+                <div className="advisor-client-detail-section">
+                  <span className="advisor-client-section-label">Motivo</span>
+                  <p className="advisor-client-detail-note">{selectedHistory.motivo || 'Sin motivo registrado.'}</p>
+                </div>
+              </div>
+            ) : (
+            <>
+            <div className="advisor-client-summary">
+              <div>
+                <h2>Historico de Clientes</h2>
+                <p>Consulta clientes y leads archivados desde el portal</p>
+              </div>
+              <div className="advisor-client-count">
+                <strong>{clientHistory.length}</strong>
+                <span>Registros</span>
+              </div>
+            </div>
+
+            <div className="advisor-client-search-row">
+              <div className="advisor-leads-toolbar">
+                <div className="advisor-search">
+                  <span className="advisor-search-icon" aria-hidden>🔍</span>
+                  <input
+                    type="search"
+                    placeholder="Buscar historico"
+                    value={historySearch}
+                    onChange={(e) => setHistorySearch(e.target.value)}
+                    aria-label="Buscar historico de clientes"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="advisor-board advisor-client-board">
+
+              {clientHistoryError && <p className="advisor-error">{clientHistoryError}</p>}
+
+              {!historyInitiallyLoaded && (
+                <div className="advisor-consultor-list">
+                  {[0, 1, 2].map((i) => (
+                    <div key={`history-skeleton-${i}`} className="advisor-consultor-row">
+                      <Skeleton width={44} height={44} radius="50%" />
+                      <div style={{ display: 'grid', gap: 6, flex: 1 }}>
+                        <Skeleton width="42%" height={14} />
+                        <Skeleton width="66%" height={12} />
+                      </div>
+                      <Skeleton width={110} height={28} radius={8} />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {historyInitiallyLoaded && filteredClientHistory.length === 0 && (
+                <div className="advisor-empty-state">
+                  <span className="advisor-empty-icon" aria-hidden>{historySearch ? '🔎' : '🗂'}</span>
+                  <p className="advisor-empty-title">{historySearch ? 'Sin resultados' : 'No hay historico registrado'}</p>
+                  <p className="advisor-empty-hint">{historySearch ? 'Prueba con otro termino.' : 'Cuando archives clientes, apareceran aqui.'}</p>
+                </div>
+              )}
+
+              <div className="advisor-client-grid advisor-history-grid">
+                <AnimatePresence initial={false}>
+                  {filteredClientHistory.map((item, idx) => {
+                    const services = parseServicios(item.servicios);
+                    const isExpanded = expandedHistoryId === item.id;
+                    const displayName = item.nombre || item.email || 'Cliente sin nombre';
+                    const historyTag = formatHistoryTag(item.etiqueta);
+                    return (
+                      <motion.article
+                        key={item.id}
+                        layout
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.98 }}
+                        transition={{ duration: 0.22, delay: Math.min(idx * 0.03, 0.15) }}
+                        className={`advisor-client-card advisor-history-card ${isExpanded ? 'is-expanded' : ''}`}
+                        onClick={() => setExpandedHistoryId((current) => current === item.id ? null : item.id)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setExpandedHistoryId((current) => current === item.id ? null : item.id);
+                          }
+                        }}
+                      >
+                        <div className="advisor-client-card-head">
+                          <span className="advisor-avatar advisor-client-card-avatar">{getInitials(displayName)}</span>
+                          <div className="advisor-consultor-info">
+                          <p className="advisor-consultor-name" title={displayName}>{displayName}</p>
+                          <p className="advisor-consultor-meta">{item.empresa || item.tipo_origen || 'Sin empresa'}</p>
+                          </div>
+                          {historyTag && <span className="advisor-pill off advisor-history-tag" title={item.etiqueta || historyTag}>{historyTag}</span>}
+                        </div>
+
+                        <p className="advisor-client-compact-meta">
+                          <span>{item.email}</span>
+                        </p>
+
+                        <AnimatePresence initial={false}>
+                          {isExpanded && (
+                            <motion.div
+                              className="advisor-client-card-body"
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.18, ease: 'easeOut' }}
+                              style={{ overflow: 'hidden' }}
+                            >
+                              <div className="advisor-client-card-facts">
+                                <p className="advisor-client-fact"><span>Origen</span><strong>{item.tipo_origen || 'Sin origen'}</strong></p>
+                                <p className="advisor-client-fact"><span>Estatus</span><strong>{item.estatus_comercial || item.estado_lead || 'Sin estatus'}</strong></p>
+                                <p className="advisor-client-fact"><span>Archivado</span><strong>{item.archived_at ? new Date(item.archived_at).toLocaleDateString('es-MX', { dateStyle: 'medium' }) : 'Sin fecha'}</strong></p>
+                              </div>
+                              <div className="advisor-client-card-tags">
+                                {item.tipo_origen && <span className="advisor-client-tag">{item.tipo_origen}</span>}
+                                {item.fuente_registro && <span className="advisor-client-tag muted">{item.fuente_registro}</span>}
+                              </div>
+                              {services.length > 0 && (
+                                <div className="advisor-services advisor-services-compact">
+                                  {services.slice(0, 3).map((service) => <span key={service} className="advisor-service">{service}</span>)}
+                                </div>
+                              )}
+                              {item.motivo && <p className="advisor-client-note">{item.motivo}</p>}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+
+                        <div className="advisor-client-card-actions">
+                          <span className="advisor-client-card-hint">{isExpanded ? 'Detalle rapido abierto' : 'Click para desplegar'}</span>
+                          <button
+                            type="button"
+                            className="advisor-client-expand"
+                            aria-label={`Ver historico de ${displayName}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedHistory(item);
+                            }}
+                          >
+                            Ver registro
+                          </button>
+                        </div>
+                      </motion.article>
+                    );
+                  })}
+                </AnimatePresence>
+              </div>
+            </div>
+            </>
+            )}
           </>
         )}
 
@@ -1272,7 +2053,7 @@ const AdvisorPortal = () => {
         description={confirmDelete ? `¿Seguro que deseas eliminar el registro de "${confirmDelete.nombre}" (${confirmDelete.email})? Esta acción no se puede deshacer.` : ''}
         confirmLabel="Eliminar"
         variant="danger"
-        loading={loading}
+        loading={loadingAction}
         onCancel={() => setConfirmDelete(null)}
         onConfirm={async () => {
           if (!confirmDelete) return;
@@ -1295,6 +2076,22 @@ const AdvisorPortal = () => {
           const target = confirmDeleteConsultor;
           setConfirmDeleteConsultor(null);
           await performDeleteConsultor(target);
+        }}
+      />
+
+      <ConfirmDialog
+        open={!!confirmArchiveClient}
+        title="Mover cliente al historico"
+        description={confirmArchiveClient ? `Seguro que deseas mover a "${confirmArchiveClient.nombre}" (${confirmArchiveClient.email}) al historico? Dejara de aparecer en clientes activos.` : ''}
+        confirmLabel="Mover al historico"
+        variant="danger"
+        loading={loading}
+        onCancel={() => setConfirmArchiveClient(null)}
+        onConfirm={async () => {
+          if (!confirmArchiveClient) return;
+          const target = confirmArchiveClient;
+          setConfirmArchiveClient(null);
+          await performArchiveManualClient(target);
         }}
       />
 
