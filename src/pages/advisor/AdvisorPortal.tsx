@@ -8,6 +8,8 @@ import { useTheme } from '../../hooks/useTheme';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { CountUp } from '../../components/ui/CountUp';
+import  DiagnosticoForm  from './DiagnosticoForm';
+
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL as string | undefined)?.trim() || 'http://localhost:3000';
 const IS_LOCAL_API = /^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(API_BASE_URL);
@@ -78,14 +80,46 @@ type LeadRecord = {
 type ManualClientRecord = {
   id: string;
   consultor_id: string;
+  no_cliente?: string | null;
   nombre: string;
   apellido?: string | null;
   email: string;
   telefono_whatsapp?: string | null;
   empresa?: string | null;
+  asesor_comercial?: string | null;
+  evento_previo?: string | null;
   puesto?: string | null;
   servicios?: string[] | string | null;
   fuente_registro?: string | null;
+  fecha_registro?: string | null;
+  importe_total?: string | number | null;
+  ene?: string | number | null;
+  feb?: string | number | null;
+  mar?: string | number | null;
+  abr?: string | number | null;
+  may?: string | number | null;
+  jun?: string | number | null;
+  jul?: string | number | null;
+  ago?: string | number | null;
+  sep?: string | number | null;
+  oct?: string | number | null;
+  nov?: string | number | null;
+  dic?: string | number | null;
+  saldo?: string | number | null;
+  expediente?: string | null;
+  fecha_sesion_1?: string | null;
+  fecha_sesion_2?: string | null;
+  observaciones?: string | null;
+  comentarios?: string | null;
+  benchmark?: string | null;
+  revision_financiera?: string | null;
+  minuta?: string | null;
+  candidato?: string | null;
+  ct?: string | null;
+  comentarios_ct?: string | null;
+  status?: string | null;
+  factura_1?: string | null;
+  factura_2?: string | null;
   estatus_comercial?: EstatusComercial | string | null;
   notas?: string | null;
   created_at?: string | null;
@@ -94,20 +128,109 @@ type ManualClientRecord = {
   consultor_email?: string | null;
 };
 
+type ClientFileRecord = {
+  id: string;
+  cliente_manual_id: string;
+  campo?: string | null;
+  nombre_original: string;
+  mime_type?: string | null;
+  size_bytes?: number | null;
+  created_at?: string | null;
+};
+
+type ClientEditDraft = {
+  no_cliente: string;
+  nombre: string;
+  apellido: string;
+  email: string;
+  telefono_whatsapp: string;
+  empresa: string;
+  asesor_comercial: string;
+  evento_previo: string;
+  puesto: string;
+  servicios: string;
+  fuente_registro: string;
+  fecha_registro: string;
+  importe_total: string;
+  ene: string;
+  feb: string;
+  mar: string;
+  abr: string;
+  may: string;
+  jun: string;
+  jul: string;
+  ago: string;
+  sep: string;
+  oct: string;
+  nov: string;
+  dic: string;
+  saldo: string;
+  expediente: string;
+  fecha_sesion_1: string;
+  fecha_sesion_2: string;
+  observaciones: string;
+  comentarios: string;
+  benchmark: string;
+  revision_financiera: string;
+  minuta: string;
+  candidato: string;
+  ct: string;
+  comentarios_ct: string;
+  status: string;
+  factura_1: string;
+  factura_2: string;
+  estatus_comercial: string;
+  notas: string;
+  consultor_id: string;
+};
+
 type HistoryRecord = {
   id: string;
+  no_cliente?: string | null;
   lead_id?: string | null;
   cliente_id?: string | null;
   cliente_manual_id?: string | null;
   consultor_id?: string | null;
   tipo_origen?: string | null;
   fuente_registro?: string | null;
+  fecha_registro?: string | null;
   nombre: string;
+  apellido?: string | null;
   email: string;
   telefono_whatsapp?: string | null;
   empresa?: string | null;
+  asesor_comercial?: string | null;
+  evento_previo?: string | null;
   puesto?: string | null;
   servicios?: string[] | string | null;
+  importe_total?: string | number | null;
+  ene?: string | number | null;
+  feb?: string | number | null;
+  mar?: string | number | null;
+  abr?: string | number | null;
+  may?: string | number | null;
+  jun?: string | number | null;
+  jul?: string | number | null;
+  ago?: string | number | null;
+  sep?: string | number | null;
+  oct?: string | number | null;
+  nov?: string | number | null;
+  dic?: string | number | null;
+  saldo?: string | number | null;
+  expediente?: string | null;
+  fecha_sesion_1?: string | null;
+  fecha_sesion_2?: string | null;
+  observaciones?: string | null;
+  comentarios?: string | null;
+  benchmark?: string | null;
+  revision_financiera?: string | null;
+  minuta?: string | null;
+  candidato?: string | null;
+  ct?: string | null;
+  comentarios_ct?: string | null;
+  status?: string | null;
+  factura_1?: string | null;
+  factura_2?: string | null;
   etiqueta?: string | null;
   motivo?: string | null;
   estado_lead?: string | null;
@@ -135,9 +258,16 @@ const defaultScheduleDraft = (): ScheduleDraft => ({
 
 const getAdminUrl = (path: string) => `${API_BASE_URL.replace(/\/$/, '')}${path}`;
 
+const toSafeText = (value: unknown) => {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  return '';
+};
+
 const parseServicios = (servicios: string[] | string | null | undefined) => {
   if (Array.isArray(servicios)) {
-    return servicios;
+    return servicios.map(toSafeText).filter(Boolean);
   }
 
   if (typeof servicios === 'string') {
@@ -152,15 +282,170 @@ const parseServicios = (servicios: string[] | string | null | undefined) => {
   return [];
 };
 
-const getInitials = (name: string, lastName?: string) => {
-  const a = (name?.trim()?.[0] || '').toUpperCase();
-  const b = (lastName?.trim()?.[0] || name?.trim()?.split(/\s+/)[1]?.[0] || '').toUpperCase();
+const toFormValue = (value: unknown) => toSafeText(value);
+
+const toDateInputValue = (value: unknown) => {
+  const raw = toFormValue(value);
+  if (!raw) return '';
+  return raw.slice(0, 10);
+};
+
+const createEmptyClientDraft = (): ClientEditDraft => ({
+  no_cliente: '',
+  nombre: '',
+  apellido: '',
+  email: '',
+  telefono_whatsapp: '',
+  empresa: '',
+  asesor_comercial: '',
+  evento_previo: '',
+  puesto: '',
+  servicios: '',
+  fuente_registro: 'manual_consultor',
+  fecha_registro: new Date().toISOString().slice(0, 10),
+  importe_total: '',
+  ene: '',
+  feb: '',
+  mar: '',
+  abr: '',
+  may: '',
+  jun: '',
+  jul: '',
+  ago: '',
+  sep: '',
+  oct: '',
+  nov: '',
+  dic: '',
+  saldo: '',
+  expediente: '',
+  fecha_sesion_1: '',
+  fecha_sesion_2: '',
+  observaciones: '',
+  comentarios: '',
+  benchmark: '',
+  revision_financiera: '',
+  minuta: '',
+  candidato: '',
+  ct: '',
+  comentarios_ct: '',
+  status: '',
+  factura_1: '',
+  factura_2: '',
+  estatus_comercial: 'cliente',
+  notas: '',
+  consultor_id: '',
+});
+
+const createClientEditDraft = (client: ManualClientRecord): ClientEditDraft => ({
+  no_cliente: toFormValue(client.no_cliente),
+  nombre: toFormValue(client.nombre),
+  apellido: toFormValue(client.apellido),
+  email: toFormValue(client.email),
+  telefono_whatsapp: toFormValue(client.telefono_whatsapp),
+  empresa: toFormValue(client.empresa),
+  asesor_comercial: toFormValue(client.asesor_comercial),
+  evento_previo: toFormValue(client.evento_previo),
+  puesto: toFormValue(client.puesto),
+  servicios: parseServicios(client.servicios).join(', '),
+  fuente_registro: toFormValue(client.fuente_registro) || 'manual_consultor',
+  fecha_registro: toDateInputValue(client.fecha_registro || client.created_at),
+  importe_total: toFormValue(client.importe_total),
+  ene: toFormValue(client.ene),
+  feb: toFormValue(client.feb),
+  mar: toFormValue(client.mar),
+  abr: toFormValue(client.abr),
+  may: toFormValue(client.may),
+  jun: toFormValue(client.jun),
+  jul: toFormValue(client.jul),
+  ago: toFormValue(client.ago),
+  sep: toFormValue(client.sep),
+  oct: toFormValue(client.oct),
+  nov: toFormValue(client.nov),
+  dic: toFormValue(client.dic),
+  saldo: toFormValue(client.saldo),
+  expediente: toFormValue(client.expediente),
+  fecha_sesion_1: toDateInputValue(client.fecha_sesion_1),
+  fecha_sesion_2: toDateInputValue(client.fecha_sesion_2),
+  observaciones: toFormValue(client.observaciones),
+  comentarios: toFormValue(client.comentarios),
+  benchmark: toFormValue(client.benchmark),
+  revision_financiera: toFormValue(client.revision_financiera),
+  minuta: toFormValue(client.minuta),
+  candidato: toFormValue(client.candidato),
+  ct: toFormValue(client.ct),
+  comentarios_ct: toFormValue(client.comentarios_ct),
+  status: toFormValue(client.status),
+  factura_1: toFormValue(client.factura_1),
+  factura_2: toFormValue(client.factura_2),
+  estatus_comercial: toFormValue(client.estatus_comercial) || 'cliente',
+  notas: toFormValue(client.notas),
+  consultor_id: toFormValue(client.consultor_id),
+});
+
+const createHistoryClientDraft = (item: HistoryRecord): ClientEditDraft => ({
+  no_cliente: toFormValue(item.no_cliente),
+  nombre: toFormValue(item.nombre),
+  apellido: toFormValue(item.apellido),
+  email: toFormValue(item.email),
+  telefono_whatsapp: toFormValue(item.telefono_whatsapp),
+  empresa: toFormValue(item.empresa),
+  asesor_comercial: toFormValue(item.asesor_comercial),
+  evento_previo: toFormValue(item.evento_previo),
+  puesto: toFormValue(item.puesto),
+  servicios: parseServicios(item.servicios).join(', '),
+  fuente_registro: toFormValue(item.fuente_registro || item.tipo_origen),
+  fecha_registro: toDateInputValue(item.fecha_registro || item.archived_at),
+  importe_total: toFormValue(item.importe_total),
+  ene: toFormValue(item.ene),
+  feb: toFormValue(item.feb),
+  mar: toFormValue(item.mar),
+  abr: toFormValue(item.abr),
+  may: toFormValue(item.may),
+  jun: toFormValue(item.jun),
+  jul: toFormValue(item.jul),
+  ago: toFormValue(item.ago),
+  sep: toFormValue(item.sep),
+  oct: toFormValue(item.oct),
+  nov: toFormValue(item.nov),
+  dic: toFormValue(item.dic),
+  saldo: toFormValue(item.saldo),
+  expediente: toFormValue(item.expediente),
+  fecha_sesion_1: toDateInputValue(item.fecha_sesion_1),
+  fecha_sesion_2: toDateInputValue(item.fecha_sesion_2),
+  observaciones: toFormValue(item.observaciones),
+  comentarios: toFormValue(item.comentarios || item.motivo),
+  benchmark: toFormValue(item.benchmark),
+  revision_financiera: toFormValue(item.revision_financiera),
+  minuta: toFormValue(item.minuta),
+  candidato: toFormValue(item.candidato),
+  ct: toFormValue(item.ct),
+  comentarios_ct: toFormValue(item.comentarios_ct),
+  status: toFormValue(item.status || item.etiqueta || item.estado_lead),
+  factura_1: toFormValue(item.factura_1),
+  factura_2: toFormValue(item.factura_2),
+  estatus_comercial: toFormValue(item.estatus_comercial || item.estado_lead),
+  notas: toFormValue(item.motivo),
+  consultor_id: toFormValue(item.consultor_id),
+});
+
+const getInitials = (name?: string | null, lastName?: string | null) => {
+  const safeName = toSafeText(name);
+  const safeLastName = toSafeText(lastName);
+  const a = (safeName.trim()?.[0] || '').toUpperCase();
+  const b = (safeLastName.trim()?.[0] || safeName.trim()?.split(/\s+/)[1]?.[0] || '').toUpperCase();
   return (a + b) || '?';
 };
 
-const formatHistoryTag = (tag?: string | null) => {
-  if (!tag) return '';
-  return tag.replace(/_/g, ' ').replace(/^cliente\s+/i, '').trim();
+const formatHistoryTag = (tag?: unknown) => {
+  const safeTag = toSafeText(tag);
+  if (!safeTag) return '';
+  return safeTag.replace(/_/g, ' ').replace(/^cliente\s+/i, '').trim();
+};
+
+const formatFileSize = (bytes?: number | null) => {
+  if (!bytes) return '0 KB';
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
 const AdvisorPortal = () => {
@@ -181,6 +466,7 @@ const AdvisorPortal = () => {
   const [leadsSearch, setLeadsSearch] = useState('');
   const [leadsInitiallyLoaded, setLeadsInitiallyLoaded] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<LeadRecord | null>(null);
+  const [confirmConvertLead, setConfirmConvertLead] = useState<LeadRecord | null>(null);
   const [confirmDeleteConsultor, setConfirmDeleteConsultor] = useState<ConsultorProfile | null>(null);
   const [rejectTarget, setRejectTarget] = useState<LeadRecord | null>(null);
   const [rejectReason, setRejectReason] = useState('');
@@ -191,8 +477,18 @@ const AdvisorPortal = () => {
   const [clientsInitiallyLoaded, setClientsInitiallyLoaded] = useState(false);
   const [historySearch, setHistorySearch] = useState('');
   const [historyInitiallyLoaded, setHistoryInitiallyLoaded] = useState(false);
+  const [clientStatusFilter, setClientStatusFilter] = useState('');
+  const [clientServiceFilter, setClientServiceFilter] = useState('');
+  const [historyTagFilter, setHistoryTagFilter] = useState('');
+  const [historyOriginFilter, setHistoryOriginFilter] = useState('');
+  const [historyServiceFilter, setHistoryServiceFilter] = useState('');
+  const [clientsFilterOpen, setClientsFilterOpen] = useState(false);
+  const [historyFilterOpen, setHistoryFilterOpen] = useState(false);
   const [confirmArchiveClient, setConfirmArchiveClient] = useState<ManualClientRecord | null>(null);
+  const [confirmRestoreHistory, setConfirmRestoreHistory] = useState<HistoryRecord | null>(null);
   const [selectedClient, setSelectedClient] = useState<ManualClientRecord | null>(null);
+  const [editingClient, setEditingClient] = useState(false);
+  const [editClientDraft, setEditClientDraft] = useState<ClientEditDraft | null>(null);
   const [expandedClientId, setExpandedClientId] = useState<string | null>(null);
   const [selectedHistory, setSelectedHistory] = useState<HistoryRecord | null>(null);
   const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null);
@@ -201,6 +497,8 @@ const AdvisorPortal = () => {
   const [view, setView] = useState<View>('leads');
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement | null>(null);
+  const clientsFilterRef = useRef<HTMLDivElement | null>(null);
+  const historyFilterRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!userMenuOpen) return;
@@ -212,6 +510,20 @@ const AdvisorPortal = () => {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [userMenuOpen]);
+
+  useEffect(() => {
+    if (!clientsFilterOpen && !historyFilterOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (clientsFilterOpen && clientsFilterRef.current && !clientsFilterRef.current.contains(e.target as Node)) {
+        setClientsFilterOpen(false);
+      }
+      if (historyFilterOpen && historyFilterRef.current && !historyFilterRef.current.contains(e.target as Node)) {
+        setHistoryFilterOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [clientsFilterOpen, historyFilterOpen]);
 
   // Leads
   const [leads, setLeads] = useState<LeadRecord[]>([]);
@@ -251,17 +563,16 @@ const AdvisorPortal = () => {
   const [regSuccess, setRegSuccess] = useState<string | null>(null);
 
   // Register manual client
-  const [clientNombre, setClientNombre] = useState('');
-  const [clientApellido, setClientApellido] = useState('');
-  const [clientEmail, setClientEmail] = useState('');
-  const [clientTelefono, setClientTelefono] = useState('');
-  const [clientEmpresa, setClientEmpresa] = useState('');
-  const [clientPuesto, setClientPuesto] = useState('');
-  const [clientServicios, setClientServicios] = useState('');
-  const [clientNotas, setClientNotas] = useState('');
-  const [clientConsultorId, setClientConsultorId] = useState('');
   const [clientError, setClientError] = useState<string | null>(null);
   const [clientSuccess, setClientSuccess] = useState<string | null>(null);
+  const [newClientDraft, setNewClientDraft] = useState<ClientEditDraft>(() => createEmptyClientDraft());
+  const [newClientFiles, setNewClientFiles] = useState<FileList | null>(null);
+  const [newClientFileCampo, setNewClientFileCampo] = useState('archivos_extras');
+  const [clientFiles, setClientFiles] = useState<ClientFileRecord[]>([]);
+  const [clientFilesError, setClientFilesError] = useState<string | null>(null);
+  const [filesLoading, setFilesLoading] = useState(false);
+  const [selectedUploadFiles, setSelectedUploadFiles] = useState<FileList | null>(null);
+  const [uploadCampo, setUploadCampo] = useState('archivos_extras');
 
   // Change password
   const [pwdCurrent, setPwdCurrent] = useState('');
@@ -273,6 +584,7 @@ const AdvisorPortal = () => {
   const authHeaders = token
     ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
     : undefined;
+  const authOnlyHeaders = token ? { Authorization: `Bearer ${token}` } : undefined;
   const isSuperAdmin = profile?.rol === 'super_admin';
 
   // ── Loaders ────────────────────────────────────────────────
@@ -363,6 +675,39 @@ const AdvisorPortal = () => {
     } catch {
       setClientHistoryError('Error de conexión al cargar el historico.');
     }
+  };
+
+
+  const loadClientFiles = async (clientId: string) => {
+    if (!authHeaders) return;
+    setFilesLoading(true);
+    setClientFilesError(null);
+    try {
+      const res = await fetch(getAdminUrl(`/api/admin/clientes-consultor/${clientId}/archivos`), { headers: authHeaders });
+      if (!res.ok) throw new Error('No fue posible cargar los archivos.');
+      const payload = await res.json();
+      setClientFiles(Array.isArray(payload.data) ? payload.data : []);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'No fue posible cargar los archivos.';
+      setClientFilesError(msg);
+    } finally {
+      setFilesLoading(false);
+    }
+  };
+
+  const uploadClientFiles = async (clientId: string, files: FileList | null, campo: string) => {
+    if (!authOnlyHeaders || !files?.length) return [];
+    const formData = new FormData();
+    Array.from(files).forEach((file) => formData.append('archivo', file));
+    formData.append('campo', campo.trim() || 'archivos_extras');
+    const res = await fetch(getAdminUrl(`/api/admin/clientes-consultor/${clientId}/archivos`), {
+      method: 'POST',
+      headers: authOnlyHeaders,
+      body: formData,
+    });
+    const payload = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(payload?.error?.message || payload?.error || 'No fue posible subir los archivos.');
+    return Array.isArray(payload?.data) ? payload.data : [];
   };
 
   // ── Bootstrap ──────────────────────────────────────────────
@@ -485,7 +830,7 @@ const AdvisorPortal = () => {
     const res = await fetch(getAdminUrl(`/api/admin/leads-espera/${leadId}/rechazar`), {
       method: 'PATCH',
       headers: authHeaders,
-      body: JSON.stringify({ motivo }),
+      body: JSON.stringify({ motivo, guardar_historico: true, etiqueta: 'lead_rechazado' }),
     });
     if (!res.ok) throw new Error('No fue posible rechazar el lead.');
     toast.success('Lead rechazado.');
@@ -500,6 +845,110 @@ const AdvisorPortal = () => {
     setRejectTarget(null);
     setRejectReason('');
     runLeadAction(() => handleReject(target.id, motivo));
+  };
+
+  const buildClientPayloadFromLead = (lead: LeadRecord) => ({
+    nombre: toSafeText(lead.nombre).trim(),
+    email: toSafeText(lead.email).trim(),
+    telefono_whatsapp: toSafeText(lead.telefono_whatsapp).trim() || undefined,
+    empresa: toSafeText(lead.empresa).trim() || undefined,
+    puesto: toSafeText(lead.puesto).trim() || undefined,
+    servicios: parseServicios(lead.servicios),
+    fuente_registro: 'lead_organico',
+    fecha_registro: toDateInputValue(lead.created_at) || new Date().toISOString().slice(0, 10),
+    estatus_comercial: 'cliente',
+    consultor_id: lead.consultor_id || profile?.id || undefined,
+    notas: [
+      `Cliente convertido desde lead organico ${lead.id}.`,
+      lead.cita_meet_link || lead.meet_link ? `Meet: ${lead.cita_meet_link || lead.meet_link}` : '',
+      lead.cita_notas_cliente ? `Notas de cita: ${lead.cita_notas_cliente}` : '',
+    ].filter(Boolean).join('\n'),
+  });
+
+  const archiveLeadForHistory = async (lead: LeadRecord, etiqueta: string, motivo?: string) => {
+    if (!authHeaders) return false;
+    const body = JSON.stringify({
+      etiqueta,
+      motivo,
+      guardar_historico: true,
+      tipo_origen: 'lead_organico',
+      fuente_registro: 'lead_organico',
+    });
+
+    const archiveAttempts = [
+      { path: `/api/admin/leads-espera/${lead.id}/archivar`, method: 'PATCH' },
+      { path: `/api/admin/leads-espera/${lead.id}/historico`, method: 'POST' },
+      { path: `/api/admin/leads-espera/${lead.id}`, method: 'DELETE' },
+    ];
+
+    for (const attempt of archiveAttempts) {
+      const res = await fetch(getAdminUrl(attempt.path), {
+        method: attempt.method,
+        headers: authHeaders,
+        body,
+      });
+      if (res.ok) return true;
+      if (res.status !== 404 && res.status !== 405) {
+        const payload = await res.json().catch(() => null);
+        throw new Error(payload?.error?.message || payload?.error || 'No fue posible guardar el lead en historico.');
+      }
+    }
+
+    return false;
+  };
+
+  const handleConvertLeadToClient = async (lead: LeadRecord) => {
+    if (!authHeaders) return;
+    try {
+      setLoadingAction(true);
+      setLeadError(null);
+
+      let convertedByBackend = false;
+      const convertBody = JSON.stringify({ consultor_id: lead.consultor_id || profile?.id, guardar_historico: true });
+      let convertRes = await fetch(getAdminUrl(`/api/admin/leads-espera/${lead.id}/convertir-cliente`), {
+        method: 'POST',
+        headers: authHeaders,
+        body: convertBody,
+      });
+
+      if (convertRes.status === 404 || convertRes.status === 405) {
+        convertRes = await fetch(getAdminUrl(`/api/admin/leads-espera/${lead.id}/pasar-a-cliente`), {
+          method: 'POST',
+          headers: authHeaders,
+          body: convertBody,
+        });
+      }
+
+      if (convertRes.ok) {
+        convertedByBackend = true;
+      } else if (convertRes.status !== 404 && convertRes.status !== 405) {
+        const payload = await convertRes.json().catch(() => null);
+        throw new Error(payload?.error?.message || payload?.error || 'No fue posible pasar el lead a cliente.');
+      }
+
+      if (!convertedByBackend) {
+        const createRes = await fetch(getAdminUrl('/api/admin/clientes-consultor'), {
+          method: 'POST',
+          headers: authHeaders,
+          body: JSON.stringify(buildClientPayloadFromLead(lead)),
+        });
+        const createPayload = await createRes.json().catch(() => null);
+        if (!createRes.ok) throw new Error(createPayload?.error?.message || createPayload?.error || 'No fue posible crear el cliente desde el lead.');
+        await archiveLeadForHistory(lead, 'lead_convertido_cliente', 'Lead organico convertido a cliente.');
+      }
+
+      toast.success(`Lead "${lead.nombre}" pasado a clientes.`);
+      await loadLeads();
+      await loadStats();
+      await loadManualClients();
+      if (historyInitiallyLoaded) await loadClientHistory();
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Error al pasar lead a cliente.';
+      setLeadError(msg);
+      toast.error(msg);
+    } finally {
+      setLoadingAction(false);
+    }
   };
 
   const handleScheduleLead = async (leadId: string) => {
@@ -557,6 +1006,116 @@ const AdvisorPortal = () => {
 
   const toggleSchedule = (leadId: string) => {
     setExpandedLeadId((current) => (current === leadId ? null : leadId));
+  };
+
+  useEffect(() => {
+    if (!selectedClient) {
+      setEditingClient(false);
+      setEditClientDraft(null);
+      setClientFiles([]);
+      setSelectedUploadFiles(null);
+      setUploadCampo('archivos_extras');
+      return;
+    }
+    setEditClientDraft(createClientEditDraft(selectedClient));
+    loadClientFiles(selectedClient.id);
+  }, [selectedClient]);
+
+  useEffect(() => {
+    if (!selectedHistory) return;
+    setClientFiles([]);
+    setClientFilesError(null);
+    if (selectedHistory.cliente_manual_id) {
+      loadClientFiles(selectedHistory.cliente_manual_id);
+    }
+  }, [selectedHistory]);
+
+  const updateEditClientDraft = (patch: Partial<ClientEditDraft>) => {
+    setEditClientDraft((current) => current ? { ...current, ...patch } : current);
+  };
+
+  const updateNewClientDraft = (patch: Partial<ClientEditDraft>) => {
+    setNewClientDraft((current) => ({ ...current, ...patch }));
+  };
+
+  const buildManualClientPayload = (draft: ClientEditDraft) => {
+    const servicios = draft.servicios
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    return {
+      no_cliente: draft.no_cliente.trim() || undefined,
+      nombre: draft.nombre.trim(),
+      apellido: draft.apellido.trim() || undefined,
+      email: draft.email.trim(),
+      telefono_whatsapp: draft.telefono_whatsapp.trim() || undefined,
+      empresa: draft.empresa.trim() || undefined,
+      asesor_comercial: draft.asesor_comercial.trim() || undefined,
+      evento_previo: draft.evento_previo.trim() || undefined,
+      puesto: draft.puesto.trim() || undefined,
+      servicios,
+      fuente_registro: draft.fuente_registro.trim() || 'manual_consultor',
+      fecha_registro: draft.fecha_registro || undefined,
+      importe_total: draft.importe_total || undefined,
+      ene: draft.ene || undefined,
+      feb: draft.feb || undefined,
+      mar: draft.mar || undefined,
+      abr: draft.abr || undefined,
+      may: draft.may || undefined,
+      jun: draft.jun || undefined,
+      jul: draft.jul || undefined,
+      ago: draft.ago || undefined,
+      sep: draft.sep || undefined,
+      oct: draft.oct || undefined,
+      nov: draft.nov || undefined,
+      dic: draft.dic || undefined,
+      saldo: draft.saldo || undefined,
+      expediente: draft.expediente.trim() || undefined,
+      fecha_sesion_1: draft.fecha_sesion_1 || undefined,
+      fecha_sesion_2: draft.fecha_sesion_2 || undefined,
+      observaciones: draft.observaciones.trim() || undefined,
+      comentarios: draft.comentarios.trim() || undefined,
+      benchmark: draft.benchmark.trim() || undefined,
+      revision_financiera: draft.revision_financiera.trim() || undefined,
+      minuta: draft.minuta.trim() || undefined,
+      candidato: draft.candidato.trim() || undefined,
+      ct: draft.ct.trim() || undefined,
+      comentarios_ct: draft.comentarios_ct.trim() || undefined,
+      status: draft.status.trim() || undefined,
+      factura_1: draft.factura_1.trim() || undefined,
+      factura_2: draft.factura_2.trim() || undefined,
+      estatus_comercial: draft.estatus_comercial || 'cliente',
+      notas: draft.notas.trim() || undefined,
+      consultor_id: isSuperAdmin ? draft.consultor_id || undefined : undefined,
+    };
+  };
+
+  const handleUpdateManualClient = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!authHeaders || !selectedClient || !editClientDraft) return;
+    try {
+      setLoading(true);
+      const res = await fetch(getAdminUrl(`/api/admin/clientes-consultor/${selectedClient.id}`), {
+        method: 'PATCH',
+        headers: authHeaders,
+        body: JSON.stringify(buildManualClientPayload(editClientDraft)),
+      });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(payload?.error?.message || payload?.error || 'No fue posible actualizar el cliente.');
+      const updated = payload?.data || { ...selectedClient, ...editClientDraft };
+      setSelectedClient(updated);
+      setManualClients((current) => current.map((client) => client.id === selectedClient.id ? updated : client));
+      setEditingClient(false);
+      toast.success('Cliente actualizado.');
+      await loadManualClients();
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Error al actualizar cliente.';
+      toast.error(msg);
+      setManualClientsError(msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // ── Register consultor ─────────────────────────────────────
@@ -637,19 +1196,13 @@ const AdvisorPortal = () => {
     if (!authHeaders) return;
     try {
       setLoadingAction(true);
-      const res = await fetch(getAdminUrl(`/api/admin/leads-espera/${lead.id}`), {
-        method: 'DELETE',
-        headers: authHeaders,
-      });
-      if (!res.ok) {
-        const p = await res.json().catch(() => null);
-        throw new Error(p?.error?.message || p?.error || 'No fue posible eliminar el lead.');
-      }
-      toast.success(`Lead «${lead.nombre}» eliminado.`);
+      await archiveLeadForHistory(lead, 'lead_eliminado', 'Lead enviado al historico desde el portal.');
+      toast.success(`Lead "${lead.nombre}" enviado al historico.`);
       await loadLeads();
       await loadStats();
+      if (historyInitiallyLoaded) await loadClientHistory();
     } catch (error) {
-      const msg = error instanceof Error ? error.message : 'Error al eliminar.';
+      const msg = error instanceof Error ? error.message : 'Error al enviar al historico.';
       toast.error(msg);
     } finally {
       setLoadingAction(false);
@@ -657,15 +1210,7 @@ const AdvisorPortal = () => {
   };
 
   const resetClientForm = () => {
-    setClientNombre('');
-    setClientApellido('');
-    setClientEmail('');
-    setClientTelefono('');
-    setClientEmpresa('');
-    setClientPuesto('');
-    setClientServicios('');
-    setClientNotas('');
-    setClientConsultorId('');
+    setNewClientDraft(createEmptyClientDraft());
   };
 
   const handleCreateManualClient = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -675,37 +1220,86 @@ const AdvisorPortal = () => {
     try {
       if (!authHeaders) return;
       setLoading(true);
-      const servicios = clientServicios
-        .split(',')
-        .map((item) => item.trim())
-        .filter(Boolean);
       const res = await fetch(getAdminUrl('/api/admin/clientes-consultor'), {
         method: 'POST',
         headers: authHeaders,
-        body: JSON.stringify({
-          nombre: clientNombre.trim(),
-          apellido: clientApellido.trim() || undefined,
-          email: clientEmail.trim(),
-          telefono_whatsapp: clientTelefono.trim() || undefined,
-          empresa: clientEmpresa.trim() || undefined,
-          puesto: clientPuesto.trim() || undefined,
-          servicios,
-          fuente_registro: 'manual_consultor',
-          estatus_comercial: 'cliente',
-          notas: clientNotas.trim() || undefined,
-          consultor_id: isSuperAdmin ? clientConsultorId || undefined : undefined,
-        }),
+        body: JSON.stringify(buildManualClientPayload(newClientDraft)),
       });
       const payload = await res.json().catch(() => null);
       if (!res.ok) throw new Error(payload?.error?.message || payload?.error || 'No fue posible agregar el cliente.');
-      const msg = `Cliente "${payload.data?.nombre || clientNombre}" agregado correctamente.`;
+      const msg = `Cliente "${payload.data?.nombre || newClientDraft.nombre}" agregado correctamente.`;
       setClientSuccess(msg);
       toast.success(msg);
+      if (newClientFiles?.length && payload.data?.id) {
+        await uploadClientFiles(payload.data.id, newClientFiles, newClientFileCampo);
+        toast.success('Archivos guardados correctamente.');
+      }
       resetClientForm();
+      setNewClientFiles(null);
+      setNewClientFileCampo('archivos_extras');
       await loadManualClients();
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Error al agregar cliente.';
       setClientError(msg);
+      toast.error(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUploadClientFiles = async () => {
+    if (!selectedClient) return;
+    try {
+      setLoading(true);
+      const uploaded = await uploadClientFiles(selectedClient.id, selectedUploadFiles, uploadCampo);
+      if (uploaded.length > 0) {
+        setClientFiles((current) => uploaded.concat(current));
+        setSelectedUploadFiles(null);
+        toast.success('Archivos guardados correctamente.');
+      }
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Error al subir archivos.';
+      setClientFilesError(msg);
+      toast.error(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOpenClientFile = async (file: ClientFileRecord) => {
+    const clientId = selectedClient?.id || selectedHistory?.cliente_manual_id;
+    if (!clientId || !authOnlyHeaders) return;
+    try {
+      const res = await fetch(getAdminUrl(`/api/admin/clientes-consultor/${clientId}/archivos/${file.id}`), {
+        headers: authOnlyHeaders,
+      });
+      if (!res.ok) throw new Error('No fue posible abrir el archivo.');
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, '_blank', 'noopener,noreferrer');
+      window.setTimeout(() => window.URL.revokeObjectURL(url), 60_000);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Error al abrir archivo.';
+      setClientFilesError(msg);
+      toast.error(msg);
+    }
+  };
+
+  const handleDeleteClientFile = async (fileId: string) => {
+    if (!selectedClient || !authHeaders) return;
+    try {
+      setLoading(true);
+      const res = await fetch(getAdminUrl(`/api/admin/clientes-consultor/${selectedClient.id}/archivos/${fileId}`), {
+        method: 'DELETE',
+        headers: authHeaders,
+      });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(payload?.error?.message || payload?.error || 'No fue posible eliminar el archivo.');
+      setClientFiles((current) => current.filter((file) => file.id !== fileId));
+      toast.success('Archivo eliminado.');
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Error al eliminar archivo.';
+      setClientFilesError(msg);
       toast.error(msg);
     } finally {
       setLoading(false);
@@ -730,6 +1324,42 @@ const AdvisorPortal = () => {
       const msg = error instanceof Error ? error.message : 'Error al archivar cliente.';
       toast.error(msg);
       setManualClientsError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const performRestoreHistoryClient = async (history: HistoryRecord) => {
+    if (!authHeaders || !history.cliente_manual_id) return;
+    try {
+      setLoading(true);
+      const body = JSON.stringify({ cliente_manual_id: history.cliente_manual_id });
+      let res = await fetch(getAdminUrl(`/api/admin/historico-clientes/${history.id}/restaurar`), {
+        method: 'PATCH',
+        headers: authHeaders,
+        body,
+      });
+
+      if (res.status === 404 || res.status === 405) {
+        res = await fetch(getAdminUrl(`/api/admin/historico-clientes/${history.id}/reactivar`), {
+          method: 'PATCH',
+          headers: authHeaders,
+          body,
+        });
+      }
+
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(payload?.error?.message || payload?.error || 'No fue posible reactivar el cliente.');
+
+      toast.success(`Cliente "${history.nombre || history.email}" reactivado.`);
+      setSelectedHistory(null);
+      setExpandedHistoryId(null);
+      await loadClientHistory();
+      await loadManualClients();
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Error al reactivar cliente.';
+      toast.error(msg);
+      setClientHistoryError(msg);
     } finally {
       setLoading(false);
     }
@@ -780,6 +1410,7 @@ const AdvisorPortal = () => {
     if (!q) return leads;
     return leads.filter((l) => {
       const hay = [l.nombre, l.email, l.empresa, l.puesto, l.telefono_whatsapp]
+        .map(toSafeText)
         .filter(Boolean)
         .join(' ')
         .toLowerCase();
@@ -791,15 +1422,17 @@ const AdvisorPortal = () => {
     const q = consultoresSearch.trim().toLowerCase();
     if (!q) return consultores;
     return consultores.filter((c) => {
-      const hay = [c.nombre, c.apellido, c.email, c.especialidad].filter(Boolean).join(' ').toLowerCase();
+      const hay = [c.nombre, c.apellido, c.email, c.especialidad].map(toSafeText).filter(Boolean).join(' ').toLowerCase();
       return hay.includes(q);
     });
   }, [consultores, consultoresSearch]);
 
   const filteredManualClients = useMemo(() => {
     const q = clientsSearch.trim().toLowerCase();
-    if (!q) return manualClients;
     return manualClients.filter((client) => {
+      if (clientStatusFilter && toSafeText(client.estatus_comercial) !== clientStatusFilter) return false;
+      if (clientServiceFilter && !parseServicios(client.servicios).some((s) => s.toLowerCase() === clientServiceFilter.toLowerCase())) return false;
+      if (!q) return true;
       const hay = [
         client.nombre,
         client.apellido,
@@ -809,15 +1442,18 @@ const AdvisorPortal = () => {
         client.puesto,
         client.consultor_nombre,
         client.consultor_apellido,
-      ].filter(Boolean).join(' ').toLowerCase();
+      ].map(toSafeText).filter(Boolean).join(' ').toLowerCase();
       return hay.includes(q);
     });
-  }, [manualClients, clientsSearch]);
+  }, [manualClients, clientsSearch, clientStatusFilter, clientServiceFilter]);
 
   const filteredClientHistory = useMemo(() => {
     const q = historySearch.trim().toLowerCase();
-    if (!q) return clientHistory;
     return clientHistory.filter((item) => {
+      if (historyTagFilter && toSafeText(item.etiqueta) !== historyTagFilter) return false;
+      if (historyOriginFilter && (toSafeText(item.tipo_origen) || toSafeText(item.fuente_registro)) !== historyOriginFilter) return false;
+      if (historyServiceFilter && !parseServicios(item.servicios).some((s) => s.toLowerCase() === historyServiceFilter.toLowerCase())) return false;
+      if (!q) return true;
       const hay = [
         item.nombre,
         item.email,
@@ -827,19 +1463,192 @@ const AdvisorPortal = () => {
         item.tipo_origen,
         item.etiqueta,
         item.motivo,
-      ].filter(Boolean).join(' ').toLowerCase();
+      ].map(toSafeText).filter(Boolean).join(' ').toLowerCase();
       return hay.includes(q);
     });
-  }, [clientHistory, historySearch]);
+  }, [clientHistory, historySearch, historyTagFilter, historyOriginFilter, historyServiceFilter]);
 
-  const selectedClientServices = useMemo(
-    () => (selectedClient ? parseServicios(selectedClient.servicios) : []),
-    [selectedClient]
+  const clientStatusOptions = useMemo(
+    () => Array.from(new Set(manualClients.map((c) => toSafeText(c.estatus_comercial).trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'es')),
+    [manualClients]
   );
+
+  const clientServiceOptions = useMemo(
+    () => Array.from(new Set(manualClients.flatMap((c) => parseServicios(c.servicios)).map((s) => s.trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'es')),
+    [manualClients]
+  );
+
+  const historyTagOptions = useMemo(
+    () => Array.from(new Set(clientHistory.map((i) => toSafeText(i.etiqueta).trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'es')),
+    [clientHistory]
+  );
+
+  const historyOriginOptions = useMemo(
+    () => Array.from(new Set(clientHistory.map((i) => (toSafeText(i.tipo_origen) || toSafeText(i.fuente_registro)).trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'es')),
+    [clientHistory]
+  );
+
+  const historyServiceOptions = useMemo(
+    () => Array.from(new Set(clientHistory.flatMap((i) => parseServicios(i.servicios)).map((s) => s.trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'es')),
+    [clientHistory]
+  );
+
+  const clientsActiveFilters = [clientStatusFilter, clientServiceFilter].filter(Boolean).length;
+  const historyActiveFilters = [historyTagFilter, historyOriginFilter, historyServiceFilter].filter(Boolean).length;
 
   // ─────────────────────────────────────────────────────────
   // LOGIN SCREEN
   // ─────────────────────────────────────────────────────────
+  const renderPdfClientFields = (
+    draft: ClientEditDraft,
+    onChange: (patch: Partial<ClientEditDraft>) => void,
+    readOnly: boolean
+  ) => {
+    const input = (label: string, field: keyof ClientEditDraft, type = 'text', placeholder = '') => (
+      <div className="advisor-field">
+        <label>{label}</label>
+        <input type={type} value={draft[field]} onChange={(e) => onChange({ [field]: e.target.value } as Partial<ClientEditDraft>)} placeholder={placeholder} disabled={readOnly} />
+      </div>
+    );
+
+    const textarea = (label: string, field: keyof ClientEditDraft, rows = 3) => (
+      <div className="advisor-field">
+        <label>{label}</label>
+        <textarea value={draft[field]} onChange={(e) => onChange({ [field]: e.target.value } as Partial<ClientEditDraft>)} rows={rows} disabled={readOnly} />
+      </div>
+    );
+
+    return (
+      <>
+        <div className="advisor-client-form-section">
+          <span className="advisor-client-section-label">Datos generales</span>
+          <div className="advisor-register-row">{input('No. cliente', 'no_cliente')}{input('Fecha de registro', 'fecha_registro', 'date')}</div>
+          <div className="advisor-register-row">{input('Nombre *', 'nombre')}{input('Apellido', 'apellido')}</div>
+          <div className="advisor-register-row">{input('Correo electronico *', 'email', 'email')}{input('Telefono / WhatsApp', 'telefono_whatsapp')}</div>
+          <div className="advisor-register-row">{input('Empresa', 'empresa')}{input('Puesto', 'puesto')}</div>
+          <div className="advisor-register-row">{input('Asesor comercial', 'asesor_comercial')}{input('Evento previo', 'evento_previo')}</div>
+          <div className="advisor-field">
+            <label>Servicios</label>
+            <input value={draft.servicios} onChange={(e) => onChange({ servicios: e.target.value })} placeholder="Fiscal, Contable, Financiera" disabled={readOnly} />
+          </div>
+          <div className="advisor-register-row">
+            <div className="advisor-field">
+              <label>Estatus comercial</label>
+              <select value={draft.estatus_comercial} onChange={(e) => onChange({ estatus_comercial: e.target.value })} disabled={readOnly}>
+                <option value="interesado">Interesado</option>
+                <option value="prospecto">Prospecto</option>
+                <option value="cliente">Cliente</option>
+              </select>
+            </div>
+            <div className="advisor-field">
+              <label>Fuente</label>
+              <input value={draft.fuente_registro} onChange={(e) => onChange({ fuente_registro: e.target.value })} disabled={readOnly} />
+            </div>
+          </div>
+          {isSuperAdmin && (
+            <div className="advisor-field">
+              <label>Consultor asignado</label>
+              <select value={draft.consultor_id} onChange={(e) => onChange({ consultor_id: e.target.value })} disabled={readOnly}>
+                <option value="">Mi usuario</option>
+                {consultores.map((c) => <option key={c.id} value={c.id}>{c.nombre}{c.apellido ? ` ${c.apellido}` : ''}</option>)}
+              </select>
+            </div>
+          )}
+        </div>
+
+        <div className="advisor-client-form-section">
+          <span className="advisor-client-section-label">Importes y mensualidades</span>
+          <div className="advisor-register-row">{input('Importe total', 'importe_total', 'number')}{input('Saldo', 'saldo', 'number')}</div>
+          <div className="advisor-month-grid">
+            {(['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'] as Array<keyof ClientEditDraft>).map((month) => (
+              <div className="advisor-field" key={month}>
+                <label>{String(month).toUpperCase()}</label>
+                <input type="number" value={draft[month]} onChange={(e) => onChange({ [month]: e.target.value } as Partial<ClientEditDraft>)} disabled={readOnly} />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="advisor-client-form-section">
+          <span className="advisor-client-section-label">Expediente y sesiones</span>
+          <div className="advisor-register-row">{input('Expediente', 'expediente')}{input('Status', 'status')}</div>
+          <div className="advisor-register-row">{input('Fecha sesion 1', 'fecha_sesion_1', 'date')}{input('Fecha sesion 2', 'fecha_sesion_2', 'date')}</div>
+          <div className="advisor-register-row">{input('Factura 1', 'factura_1')}{input('Factura 2', 'factura_2')}</div>
+          {textarea('Observaciones', 'observaciones', 3)}
+          {textarea('Comentarios', 'comentarios', 3)}
+        </div>
+
+        <div className="advisor-client-form-section">
+          <span className="advisor-client-section-label">Seguimiento interno</span>
+          {textarea('Benchmark', 'benchmark', 3)}
+          {textarea('Revision financiera', 'revision_financiera', 3)}
+          {textarea('Minuta', 'minuta', 3)}
+          <div className="advisor-register-row">{input('Candidato', 'candidato')}{input('CT', 'ct')}</div>
+          {textarea('Comentarios CT', 'comentarios_ct', 3)}
+          {textarea('Notas internas', 'notas', 4)}
+        </div>
+      </>
+    );
+  };
+
+  const renderNewClientFilesSection = () => (
+    <div className="advisor-client-form-section advisor-files-section">
+      <span className="advisor-client-section-label">Archivos extras</span>
+      <div className="advisor-upload-row">
+        <div className="advisor-field">
+          <label>Tipo de archivo</label>
+          <input value={newClientFileCampo} onChange={(e) => setNewClientFileCampo(e.target.value)} placeholder="factura, contrato, archivos_extras" />
+        </div>
+        <div className="advisor-field advisor-file-input-field">
+          <label>Archivos</label>
+          <input type="file" multiple onChange={(e) => setNewClientFiles(e.target.files)} />
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderClientFilesSection = (readOnly = false) => (
+    <div className="advisor-client-form-section advisor-files-section">
+      <span className="advisor-client-section-label">Archivos extras</span>
+      {!readOnly && (
+        <div className="advisor-upload-row">
+          <div className="advisor-field">
+            <label>Tipo de archivo</label>
+            <input value={uploadCampo} onChange={(e) => setUploadCampo(e.target.value)} placeholder="factura, contrato, archivos_extras" />
+          </div>
+          <div className="advisor-field advisor-file-input-field">
+            <label>Archivos</label>
+            <input type="file" multiple onChange={(e) => setSelectedUploadFiles(e.target.files)} />
+          </div>
+          <button type="button" className="advisor-submit" disabled={loading || !selectedUploadFiles?.length} onClick={handleUploadClientFiles}>
+            Subir archivos
+          </button>
+        </div>
+      )}
+      {clientFilesError && <p className="advisor-error">{clientFilesError}</p>}
+      {filesLoading ? (
+        <p className="advisor-client-detail-note">Cargando archivos...</p>
+      ) : clientFiles.length === 0 ? (
+        <p className="advisor-client-detail-note">Sin archivos guardados.</p>
+      ) : (
+        <div className="advisor-file-list">
+          {clientFiles.map((file) => (
+            <div key={file.id} className="advisor-file-row">
+              <div>
+                <strong>{file.nombre_original}</strong>
+                <span>{file.campo || 'archivos_extras'} - {formatFileSize(file.size_bytes)}</span>
+              </div>
+              <div className="advisor-file-actions">
+                <button type="button" className="advisor-ghost advisor-file-link" onClick={() => handleOpenClientFile(file)}>Abrir</button>
+                {!readOnly && <button type="button" className="advisor-action danger" disabled={loading} onClick={() => handleDeleteClientFile(file.id)}>Eliminar</button>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
   // Show a clear message when the production frontend has no API configured.
   if (API_NOT_CONFIGURED) {
     return (
@@ -1220,6 +2029,11 @@ const AdvisorPortal = () => {
                           </button>
                         )}
                         {lead.estado !== 'rechazado' && (
+                          <button type="button" className="advisor-action" disabled={loadingAction} onClick={() => setConfirmConvertLead(lead)}>
+                            Pasar a cliente
+                          </button>
+                        )}
+                        {lead.estado !== 'rechazado' && (
                           <button type="button" className="advisor-ghost" onClick={() => toggleSchedule(lead.id)}>
                             {expandedLeadId === lead.id
                               ? 'Cancelar'
@@ -1344,65 +2158,43 @@ const AdvisorPortal = () => {
                     <h2 className="advisor-client-detail-title">{selectedClient.nombre}{selectedClient.apellido ? ` ${selectedClient.apellido}` : ''}</h2>
                     <p className="advisor-consultor-meta">{selectedClient.email}</p>
                   </div>
-                  <span className={`advisor-badge ${ESTATUS_COLORS[selectedClient.estatus_comercial as EstatusComercial] || ''}`}>
-                    {selectedClient.estatus_comercial || 'cliente'}
-                  </span>
+                  <div className="advisor-client-top-actions">
+                    <span className={`advisor-badge ${ESTATUS_COLORS[selectedClient.estatus_comercial as EstatusComercial] || ''}`}>
+                      {selectedClient.estatus_comercial || 'cliente'}
+                    </span>
+                    <button
+                      type="button"
+                      className="advisor-action"
+                      disabled={loading}
+                      onClick={() => {
+                        setEditClientDraft(createClientEditDraft(selectedClient));
+                        setEditingClient((current) => !current);
+                      }}
+                    >
+                      {editingClient ? 'Cerrar' : 'Editar'}
+                    </button>
+                    <button type="button" className="advisor-action danger" disabled={loading} onClick={() => setConfirmArchiveClient(selectedClient)}>
+                      Dar de baja
+                    </button>
+                  </div>
                 </div>
 
-                <div className="advisor-client-detail-grid">
-                  <div className="advisor-client-detail-block">
-                    <span>Telefono</span>
-                    {selectedClient.telefono_whatsapp ? (
-                      <a href={`https://wa.me/${selectedClient.telefono_whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer">{selectedClient.telefono_whatsapp}</a>
-                    ) : (
-                      <strong>No registrado</strong>
+                {editClientDraft && (
+                  <form className={`advisor-form advisor-client-edit-form ${!editingClient ? 'is-readonly' : ''}`} onSubmit={handleUpdateManualClient} noValidate>
+                    {renderPdfClientFields(editClientDraft, updateEditClientDraft, !editingClient)}
+                    {renderClientFilesSection()}
+                    {editingClient && (
+                      <div className="advisor-register-actions">
+                        <button type="submit" className="advisor-submit" disabled={loading}>{loading ? 'Guardando...' : 'Guardar cambios'}</button>
+                        <button type="button" className="advisor-ghost" onClick={() => { setEditClientDraft(createClientEditDraft(selectedClient)); setEditingClient(false); }}>
+                          Cancelar
+                        </button>
+                      </div>
                     )}
-                  </div>
-                  <div className="advisor-client-detail-block">
-                    <span>Empresa</span>
-                    <strong>{selectedClient.empresa || 'No registrada'}</strong>
-                  </div>
-                  <div className="advisor-client-detail-block">
-                    <span>Puesto</span>
-                    <strong>{selectedClient.puesto || 'No registrado'}</strong>
-                  </div>
-                  <div className="advisor-client-detail-block">
-                    <span>Consultor</span>
-                    <strong>{[selectedClient.consultor_nombre, selectedClient.consultor_apellido].filter(Boolean).join(' ') || 'Sin asignar'}</strong>
-                  </div>
-                  <div className="advisor-client-detail-block">
-                    <span>Fuente</span>
-                    <strong>{selectedClient.fuente_registro || 'manual_consultor'}</strong>
-                  </div>
-                  <div className="advisor-client-detail-block">
-                    <span>Registro</span>
-                    <strong>
-                      {selectedClient.created_at
-                        ? new Date(selectedClient.created_at).toLocaleDateString('es-MX', { dateStyle: 'medium' })
-                        : 'Sin fecha'}
-                    </strong>
-                  </div>
-                </div>
-
-                {selectedClientServices.length > 0 && (
-                  <div className="advisor-client-detail-section">
-                    <span className="advisor-client-section-label">Servicios</span>
-                    <div className="advisor-services advisor-services-compact">
-                      {selectedClientServices.map((service) => <span key={service} className="advisor-service">{service}</span>)}
-                    </div>
-                  </div>
+                  </form>
                 )}
 
-                <div className="advisor-client-detail-section">
-                  <span className="advisor-client-section-label">Notas</span>
-                  <p className="advisor-client-detail-note">{selectedClient.notas || 'Sin notas internas registradas.'}</p>
-                </div>
-
-                <div className="advisor-client-card-actions">
-                  <button type="button" className="advisor-action danger" disabled={loading} onClick={() => setConfirmArchiveClient(selectedClient)}>
-                    Mover a historico
-                  </button>
-                </div>
+                 <DiagnosticoForm clientId={selectedClient.id} />
               </div>
             ) : (
             <>
@@ -1429,6 +2221,50 @@ const AdvisorPortal = () => {
                     aria-label="Buscar clientes"
                   />
                 </div>
+                <div className="advisor-filter-menu" ref={clientsFilterRef}>
+                  <button
+                    type="button"
+                    className={`advisor-filter-trigger${clientsActiveFilters > 0 ? ' has-filters' : ''}`}
+                    onClick={() => setClientsFilterOpen((v) => !v)}
+                    aria-label="Abrir filtros"
+                    aria-expanded={clientsFilterOpen}
+                    title="Filtros"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+                      <path d="M2 4h12M4 8h8M6 12h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                    </svg>
+                    {clientsActiveFilters > 0 && <span className="advisor-filter-badge">{clientsActiveFilters}</span>}
+                  </button>
+                  {clientsFilterOpen && (
+                    <div className="advisor-filter-dropdown">
+                      <div className="advisor-filter-dropdown-inner">
+                        <div className="advisor-field">
+                          <label>Estatus</label>
+                          <select value={clientStatusFilter} onChange={(e) => setClientStatusFilter(e.target.value)}>
+                            <option value="">Todos los estatus</option>
+                            {clientStatusOptions.map((s) => <option key={s} value={s}>{s}</option>)}
+                          </select>
+                        </div>
+                        <div className="advisor-field">
+                          <label>Servicio</label>
+                          <select value={clientServiceFilter} onChange={(e) => setClientServiceFilter(e.target.value)}>
+                            <option value="">Todos los servicios</option>
+                            {clientServiceOptions.map((s) => <option key={s} value={s}>{s}</option>)}
+                          </select>
+                        </div>
+                        {clientsActiveFilters > 0 && (
+                          <button
+                            type="button"
+                            className="advisor-ghost"
+                            onClick={() => { setClientStatusFilter(''); setClientServiceFilter(''); }}
+                          >
+                            Limpiar filtros
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -1453,9 +2289,9 @@ const AdvisorPortal = () => {
 
               {clientsInitiallyLoaded && filteredManualClients.length === 0 && (
                 <div className="advisor-empty-state">
-                  <span className="advisor-empty-icon" aria-hidden>{clientsSearch ? '🔎' : '👥'}</span>
-                  <p className="advisor-empty-title">{clientsSearch ? 'Sin resultados' : 'No hay clientes registrados'}</p>
-                  <p className="advisor-empty-hint">{clientsSearch ? 'Prueba con otro termino.' : 'Agrega el primer cliente para verlo aqui.'}</p>
+                  <span className="advisor-empty-icon" aria-hidden>{clientsSearch || clientsActiveFilters > 0 ? '🔎' : '👥'}</span>
+                  <p className="advisor-empty-title">{clientsSearch || clientsActiveFilters > 0 ? 'Sin resultados' : 'No hay clientes registrados'}</p>
+                  <p className="advisor-empty-hint">{clientsSearch || clientsActiveFilters > 0 ? 'Prueba con otro término o limpia los filtros.' : 'Agrega el primer cliente para verlo aqui.'}</p>
                 </div>
               )}
 
@@ -1575,55 +2411,8 @@ const AdvisorPortal = () => {
 
             <div className="advisor-board advisor-register-board">
               <form className="advisor-form advisor-register-form" onSubmit={handleCreateManualClient} noValidate>
-                <div className="advisor-register-row">
-                  <div className="advisor-field">
-                    <label htmlFor="client-nombre">Nombre *</label>
-                    <input id="client-nombre" type="text" value={clientNombre} onChange={(e) => setClientNombre(e.target.value)} placeholder="Nombre" required />
-                  </div>
-                  <div className="advisor-field">
-                    <label htmlFor="client-apellido">Apellido</label>
-                    <input id="client-apellido" type="text" value={clientApellido} onChange={(e) => setClientApellido(e.target.value)} placeholder="Apellido (opcional)" />
-                  </div>
-                </div>
-                <div className="advisor-field">
-                  <label htmlFor="client-email">Correo electronico *</label>
-                  <input id="client-email" type="email" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} placeholder="cliente@empresa.com" required />
-                </div>
-                <div className="advisor-field">
-                  <label htmlFor="client-telefono">Telefono / WhatsApp</label>
-                  <input id="client-telefono" type="tel" value={clientTelefono} onChange={(e) => setClientTelefono(e.target.value)} placeholder="+52..." />
-                </div>
-                <div className="advisor-register-row">
-                  <div className="advisor-field">
-                    <label htmlFor="client-empresa">Empresa</label>
-                    <input id="client-empresa" type="text" value={clientEmpresa} onChange={(e) => setClientEmpresa(e.target.value)} placeholder="Empresa" />
-                  </div>
-                  <div className="advisor-field">
-                    <label htmlFor="client-puesto">Puesto</label>
-                    <input id="client-puesto" type="text" value={clientPuesto} onChange={(e) => setClientPuesto(e.target.value)} placeholder="Puesto" />
-                  </div>
-                </div>
-                <div className="advisor-field">
-                  <label htmlFor="client-servicios">Servicios</label>
-                  <input id="client-servicios" type="text" value={clientServicios} onChange={(e) => setClientServicios(e.target.value)} placeholder="Fiscal, Contable, Financiera" />
-                </div>
-                {isSuperAdmin && (
-                  <div className="advisor-register-row">
-                    <div className="advisor-field">
-                      <label htmlFor="client-consultor">Consultor asignado</label>
-                      <select id="client-consultor" value={clientConsultorId} onChange={(e) => setClientConsultorId(e.target.value)}>
-                        <option value="">Mi usuario</option>
-                        {consultores.map((c) => (
-                          <option key={c.id} value={c.id}>{c.nombre}{c.apellido ? ` ${c.apellido}` : ''}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                )}
-                <div className="advisor-field">
-                  <label htmlFor="client-notas">Notas</label>
-                  <textarea id="client-notas" value={clientNotas} onChange={(e) => setClientNotas(e.target.value)} placeholder="Notas internas del cliente" rows={4} />
-                </div>
+                {renderPdfClientFields(newClientDraft, updateNewClientDraft, false)}
+                {renderNewClientFilesSection()}
                 <div className="advisor-register-actions">
                   <button type="submit" className="advisor-submit" disabled={loading}>
                     {loading ? 'Guardando...' : 'Agregar cliente'}
@@ -1667,28 +2456,37 @@ const AdvisorPortal = () => {
                     <h2 className="advisor-client-detail-title">{selectedHistory.nombre}</h2>
                     <p className="advisor-consultor-meta">{selectedHistory.email}</p>
                   </div>
-                  {selectedHistory.etiqueta && <span className="advisor-pill off">{selectedHistory.etiqueta}</span>}
+                  <div className="advisor-client-top-actions">
+                    {selectedHistory.etiqueta && <span className="advisor-pill off">{selectedHistory.etiqueta}</span>}
+                    {selectedHistory.cliente_manual_id && (
+                      <button
+                        type="button"
+                        className="advisor-action"
+                        disabled={loading}
+                        onClick={() => setConfirmRestoreHistory(selectedHistory)}
+                      >
+                        Reactivar cliente
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <div className="advisor-client-detail-grid">
-                  <div className="advisor-client-detail-block"><span>Origen</span><strong>{selectedHistory.tipo_origen || 'Sin origen'}</strong></div>
-                  <div className="advisor-client-detail-block"><span>Empresa</span><strong>{selectedHistory.empresa || 'No registrada'}</strong></div>
-                  <div className="advisor-client-detail-block"><span>Puesto</span><strong>{selectedHistory.puesto || 'No registrado'}</strong></div>
-                  <div className="advisor-client-detail-block"><span>Telefono</span><strong>{selectedHistory.telefono_whatsapp || 'No registrado'}</strong></div>
-                  <div className="advisor-client-detail-block"><span>Estatus</span><strong>{selectedHistory.estatus_comercial || selectedHistory.estado_lead || 'Sin estatus'}</strong></div>
-                  <div className="advisor-client-detail-block"><span>Archivado</span><strong>{selectedHistory.archived_at ? new Date(selectedHistory.archived_at).toLocaleDateString('es-MX', { dateStyle: 'medium' }) : 'Sin fecha'}</strong></div>
-                </div>
-                {parseServicios(selectedHistory.servicios).length > 0 && (
-                  <div className="advisor-client-detail-section">
-                    <span className="advisor-client-section-label">Servicios</span>
-                    <div className="advisor-services advisor-services-compact">
-                      {parseServicios(selectedHistory.servicios).map((service) => <span key={service} className="advisor-service">{service}</span>)}
+                <form className="advisor-form advisor-client-edit-form is-readonly" noValidate>
+                  {renderPdfClientFields(createHistoryClientDraft(selectedHistory), () => undefined, true)}
+                  <div className="advisor-client-form-section">
+                    <span className="advisor-client-section-label">Historico</span>
+                    <div className="advisor-register-row">
+                      <div className="advisor-field">
+                        <label>Etiqueta</label>
+                        <input value={selectedHistory.etiqueta || 'Sin etiqueta'} disabled />
+                      </div>
+                      <div className="advisor-field">
+                        <label>Archivado</label>
+                        <input value={selectedHistory.archived_at ? new Date(selectedHistory.archived_at).toLocaleDateString('es-MX', { dateStyle: 'medium' }) : 'Sin fecha'} disabled />
+                      </div>
                     </div>
                   </div>
-                )}
-                <div className="advisor-client-detail-section">
-                  <span className="advisor-client-section-label">Motivo</span>
-                  <p className="advisor-client-detail-note">{selectedHistory.motivo || 'Sin motivo registrado.'}</p>
-                </div>
+                </form>
+                {selectedHistory.cliente_manual_id && renderClientFilesSection(true)}
               </div>
             ) : (
             <>
@@ -1715,6 +2513,57 @@ const AdvisorPortal = () => {
                     aria-label="Buscar historico de clientes"
                   />
                 </div>
+                <div className="advisor-filter-menu" ref={historyFilterRef}>
+                  <button
+                    type="button"
+                    className={`advisor-filter-trigger${historyActiveFilters > 0 ? ' has-filters' : ''}`}
+                    onClick={() => setHistoryFilterOpen((v) => !v)}
+                    aria-label="Abrir filtros"
+                    aria-expanded={historyFilterOpen}
+                    title="Filtros"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+                      <path d="M2 4h12M4 8h8M6 12h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                    </svg>
+                    {historyActiveFilters > 0 && <span className="advisor-filter-badge">{historyActiveFilters}</span>}
+                  </button>
+                  {historyFilterOpen && (
+                    <div className="advisor-filter-dropdown">
+                      <div className="advisor-filter-dropdown-inner">
+                        <div className="advisor-field">
+                          <label>Etiqueta</label>
+                          <select value={historyTagFilter} onChange={(e) => setHistoryTagFilter(e.target.value)}>
+                            <option value="">Todas las etiquetas</option>
+                            {historyTagOptions.map((t) => <option key={t} value={t}>{formatHistoryTag(t) || t}</option>)}
+                          </select>
+                        </div>
+                        <div className="advisor-field">
+                          <label>Origen</label>
+                          <select value={historyOriginFilter} onChange={(e) => setHistoryOriginFilter(e.target.value)}>
+                            <option value="">Todos los origenes</option>
+                            {historyOriginOptions.map((o) => <option key={o} value={o}>{o}</option>)}
+                          </select>
+                        </div>
+                        <div className="advisor-field">
+                          <label>Servicio</label>
+                          <select value={historyServiceFilter} onChange={(e) => setHistoryServiceFilter(e.target.value)}>
+                            <option value="">Todos los servicios</option>
+                            {historyServiceOptions.map((s) => <option key={s} value={s}>{s}</option>)}
+                          </select>
+                        </div>
+                        {historyActiveFilters > 0 && (
+                          <button
+                            type="button"
+                            className="advisor-ghost"
+                            onClick={() => { setHistoryTagFilter(''); setHistoryOriginFilter(''); setHistoryServiceFilter(''); }}
+                          >
+                            Limpiar filtros
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -1739,9 +2588,9 @@ const AdvisorPortal = () => {
 
               {historyInitiallyLoaded && filteredClientHistory.length === 0 && (
                 <div className="advisor-empty-state">
-                  <span className="advisor-empty-icon" aria-hidden>{historySearch ? '🔎' : '🗂'}</span>
-                  <p className="advisor-empty-title">{historySearch ? 'Sin resultados' : 'No hay historico registrado'}</p>
-                  <p className="advisor-empty-hint">{historySearch ? 'Prueba con otro termino.' : 'Cuando archives clientes, apareceran aqui.'}</p>
+                  <span className="advisor-empty-icon" aria-hidden>{historySearch || historyActiveFilters > 0 ? '🔎' : '🗂'}</span>
+                  <p className="advisor-empty-title">{historySearch || historyActiveFilters > 0 ? 'Sin resultados' : 'No hay historico registrado'}</p>
+                  <p className="advisor-empty-hint">{historySearch || historyActiveFilters > 0 ? 'Prueba con otro término o limpia los filtros.' : 'Cuando archives clientes, apareceran aqui.'}</p>
                 </div>
               )}
 
@@ -1826,6 +2675,20 @@ const AdvisorPortal = () => {
                           >
                             Ver registro
                           </button>
+                          {item.cliente_manual_id && (
+                            <button
+                              type="button"
+                              className="advisor-client-expand"
+                              aria-label={`Reactivar cliente ${displayName}`}
+                              disabled={loading}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setConfirmRestoreHistory(item);
+                              }}
+                            >
+                              Reactivar
+                            </button>
+                          )}
                         </div>
                       </motion.article>
                     );
@@ -2049,9 +2912,9 @@ const AdvisorPortal = () => {
       {/* ── Modales ───────────────────────────────────── */}
       <ConfirmDialog
         open={!!confirmDelete}
-        title="Eliminar lead"
-        description={confirmDelete ? `¿Seguro que deseas eliminar el registro de "${confirmDelete.nombre}" (${confirmDelete.email})? Esta acción no se puede deshacer.` : ''}
-        confirmLabel="Eliminar"
+        title="Enviar lead al historico"
+        description={confirmDelete ? `Seguro que deseas enviar el lead de "${confirmDelete.nombre}" (${confirmDelete.email}) al historico? Dejara de aparecer en leads activos.` : ''}
+        confirmLabel="Enviar al historico"
         variant="danger"
         loading={loadingAction}
         onCancel={() => setConfirmDelete(null)}
@@ -2060,6 +2923,21 @@ const AdvisorPortal = () => {
           const target = confirmDelete;
           setConfirmDelete(null);
           await performDeleteLead(target);
+        }}
+      />
+
+      <ConfirmDialog
+        open={!!confirmConvertLead}
+        title="Pasar lead a cliente"
+        description={confirmConvertLead ? `Seguro que deseas crear un cliente activo con los datos de "${confirmConvertLead.nombre}"? El lead organico se guardara en historico como convertido.` : ''}
+        confirmLabel="Pasar a cliente"
+        loading={loadingAction}
+        onCancel={() => setConfirmConvertLead(null)}
+        onConfirm={async () => {
+          if (!confirmConvertLead) return;
+          const target = confirmConvertLead;
+          setConfirmConvertLead(null);
+          await handleConvertLeadToClient(target);
         }}
       />
 
@@ -2081,9 +2959,9 @@ const AdvisorPortal = () => {
 
       <ConfirmDialog
         open={!!confirmArchiveClient}
-        title="Mover cliente al historico"
-        description={confirmArchiveClient ? `Seguro que deseas mover a "${confirmArchiveClient.nombre}" (${confirmArchiveClient.email}) al historico? Dejara de aparecer en clientes activos.` : ''}
-        confirmLabel="Mover al historico"
+        title="Dar de baja cliente"
+        description={confirmArchiveClient ? `Seguro que deseas dar de baja a "${confirmArchiveClient.nombre}" (${confirmArchiveClient.email})? Se movera al historico.` : ''}
+        confirmLabel="Dar de baja"
         variant="danger"
         loading={loading}
         onCancel={() => setConfirmArchiveClient(null)}
@@ -2092,6 +2970,21 @@ const AdvisorPortal = () => {
           const target = confirmArchiveClient;
           setConfirmArchiveClient(null);
           await performArchiveManualClient(target);
+        }}
+      />
+
+      <ConfirmDialog
+        open={!!confirmRestoreHistory}
+        title="Reactivar cliente"
+        description={confirmRestoreHistory ? `Seguro que deseas reactivar a "${confirmRestoreHistory.nombre || confirmRestoreHistory.email}"? Volvera a aparecer en clientes activos.` : ''}
+        confirmLabel="Reactivar"
+        loading={loading}
+        onCancel={() => setConfirmRestoreHistory(null)}
+        onConfirm={async () => {
+          if (!confirmRestoreHistory) return;
+          const target = confirmRestoreHistory;
+          setConfirmRestoreHistory(null);
+          await performRestoreHistoryClient(target);
         }}
       />
 
@@ -2157,3 +3050,4 @@ const AdvisorPortal = () => {
 };
 
 export default AdvisorPortal;
+
