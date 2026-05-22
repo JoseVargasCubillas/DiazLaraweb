@@ -448,6 +448,8 @@ const formatFileSize = (bytes?: number | null) => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
+const getHistoryRestoreId = (history: HistoryRecord) => history.cliente_manual_id || history.cliente_id || '';
+
 const AdvisorPortal = () => {
   const toast = useToast();
   const { theme, toggleTheme } = useTheme();
@@ -1330,10 +1332,11 @@ const AdvisorPortal = () => {
   };
 
   const performRestoreHistoryClient = async (history: HistoryRecord) => {
-    if (!authHeaders || !history.cliente_manual_id) return;
+    const restoreId = getHistoryRestoreId(history);
+    if (!authHeaders || !restoreId) return;
     try {
       setLoading(true);
-      const body = JSON.stringify({ cliente_manual_id: history.cliente_manual_id });
+      const body = JSON.stringify({ cliente_manual_id: history.cliente_manual_id, cliente_id: history.cliente_id });
       let res = await fetch(getAdminUrl(`/api/admin/historico-clientes/${history.id}/restaurar`), {
         method: 'PATCH',
         headers: authHeaders,
@@ -2458,7 +2461,7 @@ const AdvisorPortal = () => {
                   </div>
                   <div className="advisor-client-top-actions">
                     {selectedHistory.etiqueta && <span className="advisor-pill off">{selectedHistory.etiqueta}</span>}
-                    {selectedHistory.cliente_manual_id && (
+                    {getHistoryRestoreId(selectedHistory) && (
                       <button
                         type="button"
                         className="advisor-action"
@@ -2486,7 +2489,7 @@ const AdvisorPortal = () => {
                     </div>
                   </div>
                 </form>
-                {selectedHistory.cliente_manual_id && renderClientFilesSection(true)}
+                {getHistoryRestoreId(selectedHistory) && renderClientFilesSection(true)}
               </div>
             ) : (
             <>
@@ -2675,7 +2678,7 @@ const AdvisorPortal = () => {
                           >
                             Ver registro
                           </button>
-                          {item.cliente_manual_id && (
+                          {getHistoryRestoreId(item) && (
                             <button
                               type="button"
                               className="advisor-client-expand"
