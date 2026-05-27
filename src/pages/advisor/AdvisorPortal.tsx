@@ -9,6 +9,8 @@ import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { CountUp } from '../../components/ui/CountUp';
 import  DiagnosticoForm  from './DiagnosticoForm';
+import { CLIENT_STATUS_DEFAULT, CLIENT_STATUS_OPTIONS, isClientStatus } from './clientStatus';
+import type { ClientStatus } from './clientStatus';
 
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL as string | undefined)?.trim() || 'http://localhost:3000';
@@ -52,6 +54,26 @@ type ConsultorProfile = {
   activo?: boolean;
 };
 
+type CatalogItem = {
+  id: string;
+  nombre: string;
+  activo?: boolean;
+};
+
+type ClientConsultantAssignment = {
+  id: string;
+  cliente_manual_id: string;
+  consultor_id: string;
+  servicio_id?: string | null;
+  etapa?: string | null;
+  notas?: string | null;
+  consultor_nombre?: string | null;
+  consultor_apellido?: string | null;
+  consultor_email?: string | null;
+  servicio_nombre?: string | null;
+  created_at?: string | null;
+};
+
 type LeadRecord = {
   id: string;
   nombre: string;
@@ -75,6 +97,7 @@ type LeadRecord = {
   consultor_nombre?: string | null;
   consultor_apellido?: string | null;
   consultor_email?: string | null;
+  consultor_asignaciones?: ClientConsultantAssignment[];
 };
 
 type ManualClientRecord = {
@@ -118,6 +141,8 @@ type ManualClientRecord = {
   ct?: string | null;
   comentarios_ct?: string | null;
   status?: string | null;
+  client_status?: ClientStatus | string | null;
+  sesiones?: string[] | string | null;
   factura_1?: string | null;
   factura_2?: string | null;
   estatus_comercial?: EstatusComercial | string | null;
@@ -148,7 +173,7 @@ type ClientEditDraft = {
   asesor_comercial: string;
   evento_previo: string;
   puesto: string;
-  servicios: string;
+  servicios: string[];
   fuente_registro: string;
   fecha_registro: string;
   importe_total: string;
@@ -168,6 +193,7 @@ type ClientEditDraft = {
   expediente: string;
   fecha_sesion_1: string;
   fecha_sesion_2: string;
+  sesiones: string[];
   observaciones: string;
   comentarios: string;
   benchmark: string;
@@ -177,11 +203,19 @@ type ClientEditDraft = {
   ct: string;
   comentarios_ct: string;
   status: string;
+  client_status: string;
   factura_1: string;
   factura_2: string;
   estatus_comercial: string;
   notas: string;
   consultor_id: string;
+};
+
+type AssignmentDraft = {
+  consultor_id: string;
+  servicio_id: string;
+  etapa: string;
+  notas: string;
 };
 
 type HistoryRecord = {
@@ -229,6 +263,8 @@ type HistoryRecord = {
   ct?: string | null;
   comentarios_ct?: string | null;
   status?: string | null;
+  client_status?: ClientStatus | string | null;
+  sesiones?: string[] | string | null;
   factura_1?: string | null;
   factura_2?: string | null;
   etiqueta?: string | null;
@@ -254,6 +290,13 @@ const defaultScheduleDraft = (): ScheduleDraft => ({
   duracion: 30,
   estatus_comercial: 'prospecto',
   notas_cliente: '',
+});
+
+const defaultAssignmentDraft = (): AssignmentDraft => ({
+  consultor_id: '',
+  servicio_id: '',
+  etapa: '',
+  notas: '',
 });
 
 const getAdminUrl = (path: string) => `${API_BASE_URL.replace(/\/$/, '')}${path}`;
@@ -282,7 +325,40 @@ const parseServicios = (servicios: string[] | string | null | undefined) => {
   return [];
 };
 
+const parseSessions = (sessions: string[] | string | null | undefined, first?: unknown, second?: unknown) => {
+  const parsed = Array.isArray(sessions)
+    ? sessions
+    : typeof sessions === 'string'
+      ? (() => {
+          try {
+            const value = JSON.parse(sessions);
+            return Array.isArray(value) ? value : [sessions];
+          } catch {
+            return [sessions];
+          }
+        })()
+      : [];
+
+  const values = [
+    ...parsed,
+    toDateInputValue(first),
+    toDateInputValue(second),
+  ];
+  const seen = new Set<string>();
+  return values
+    .map((item) => toDateInputValue(item))
+    .filter((item) => {
+      if (!item || seen.has(item)) return false;
+      seen.add(item);
+      return true;
+    });
+};
+
 const toFormValue = (value: unknown) => toSafeText(value);
+
+const toClientStatus = (value: unknown): ClientStatus => (
+  isClientStatus(value) ? value : CLIENT_STATUS_DEFAULT
+);
 
 const toDateInputValue = (value: unknown) => {
   const raw = toFormValue(value);
@@ -296,11 +372,11 @@ const createEmptyClientDraft = (): ClientEditDraft => ({
   apellido: '',
   email: '',
   telefono_whatsapp: '',
-  empresa: '',
+  empresa: 'NA',
   asesor_comercial: '',
   evento_previo: '',
   puesto: '',
-  servicios: '',
+  servicios: [],
   fuente_registro: 'manual_consultor',
   fecha_registro: new Date().toISOString().slice(0, 10),
   importe_total: '',
@@ -320,6 +396,7 @@ const createEmptyClientDraft = (): ClientEditDraft => ({
   expediente: '',
   fecha_sesion_1: '',
   fecha_sesion_2: '',
+  sesiones: [''],
   observaciones: '',
   comentarios: '',
   benchmark: '',
@@ -329,6 +406,7 @@ const createEmptyClientDraft = (): ClientEditDraft => ({
   ct: '',
   comentarios_ct: '',
   status: '',
+  client_status: CLIENT_STATUS_DEFAULT,
   factura_1: '',
   factura_2: '',
   estatus_comercial: 'cliente',
@@ -342,11 +420,11 @@ const createClientEditDraft = (client: ManualClientRecord): ClientEditDraft => (
   apellido: toFormValue(client.apellido),
   email: toFormValue(client.email),
   telefono_whatsapp: toFormValue(client.telefono_whatsapp),
-  empresa: toFormValue(client.empresa),
+  empresa: toFormValue(client.empresa) || 'NA',
   asesor_comercial: toFormValue(client.asesor_comercial),
   evento_previo: toFormValue(client.evento_previo),
   puesto: toFormValue(client.puesto),
-  servicios: parseServicios(client.servicios).join(', '),
+  servicios: parseServicios(client.servicios),
   fuente_registro: toFormValue(client.fuente_registro) || 'manual_consultor',
   fecha_registro: toDateInputValue(client.fecha_registro || client.created_at),
   importe_total: toFormValue(client.importe_total),
@@ -366,6 +444,7 @@ const createClientEditDraft = (client: ManualClientRecord): ClientEditDraft => (
   expediente: toFormValue(client.expediente),
   fecha_sesion_1: toDateInputValue(client.fecha_sesion_1),
   fecha_sesion_2: toDateInputValue(client.fecha_sesion_2),
+  sesiones: parseSessions(client.sesiones, client.fecha_sesion_1, client.fecha_sesion_2),
   observaciones: toFormValue(client.observaciones),
   comentarios: toFormValue(client.comentarios),
   benchmark: toFormValue(client.benchmark),
@@ -375,6 +454,7 @@ const createClientEditDraft = (client: ManualClientRecord): ClientEditDraft => (
   ct: toFormValue(client.ct),
   comentarios_ct: toFormValue(client.comentarios_ct),
   status: toFormValue(client.status),
+  client_status: toClientStatus(client.client_status),
   factura_1: toFormValue(client.factura_1),
   factura_2: toFormValue(client.factura_2),
   estatus_comercial: toFormValue(client.estatus_comercial) || 'cliente',
@@ -392,7 +472,7 @@ const createHistoryClientDraft = (item: HistoryRecord): ClientEditDraft => ({
   asesor_comercial: toFormValue(item.asesor_comercial),
   evento_previo: toFormValue(item.evento_previo),
   puesto: toFormValue(item.puesto),
-  servicios: parseServicios(item.servicios).join(', '),
+  servicios: parseServicios(item.servicios),
   fuente_registro: toFormValue(item.fuente_registro || item.tipo_origen),
   fecha_registro: toDateInputValue(item.fecha_registro || item.archived_at),
   importe_total: toFormValue(item.importe_total),
@@ -412,6 +492,7 @@ const createHistoryClientDraft = (item: HistoryRecord): ClientEditDraft => ({
   expediente: toFormValue(item.expediente),
   fecha_sesion_1: toDateInputValue(item.fecha_sesion_1),
   fecha_sesion_2: toDateInputValue(item.fecha_sesion_2),
+  sesiones: parseSessions(item.sesiones, item.fecha_sesion_1, item.fecha_sesion_2),
   observaciones: toFormValue(item.observaciones),
   comentarios: toFormValue(item.comentarios || item.motivo),
   benchmark: toFormValue(item.benchmark),
@@ -421,6 +502,7 @@ const createHistoryClientDraft = (item: HistoryRecord): ClientEditDraft => ({
   ct: toFormValue(item.ct),
   comentarios_ct: toFormValue(item.comentarios_ct),
   status: toFormValue(item.status || item.etiqueta || item.estado_lead),
+  client_status: toClientStatus(item.client_status),
   factura_1: toFormValue(item.factura_1),
   factura_2: toFormValue(item.factura_2),
   estatus_comercial: toFormValue(item.estatus_comercial || item.estado_lead),
@@ -480,6 +562,7 @@ const AdvisorPortal = () => {
   const [historySearch, setHistorySearch] = useState('');
   const [historyInitiallyLoaded, setHistoryInitiallyLoaded] = useState(false);
   const [clientStatusFilter, setClientStatusFilter] = useState('');
+  const [clientProcessStatusFilter, setClientProcessStatusFilter] = useState('');
   const [clientServiceFilter, setClientServiceFilter] = useState('');
   const [historyTagFilter, setHistoryTagFilter] = useState('');
   const [historyOriginFilter, setHistoryOriginFilter] = useState('');
@@ -538,10 +621,18 @@ const AdvisorPortal = () => {
   // Consultores
   const [consultores, setConsultores] = useState<ConsultorProfile[]>([]);
   const [consultoresError, setConsultoresError] = useState<string | null>(null);
+  const [commercialAdvisors, setCommercialAdvisors] = useState<CatalogItem[]>([]);
+  const [clientServices, setClientServices] = useState<CatalogItem[]>([]);
+  const [catalogsError, setCatalogsError] = useState<string | null>(null);
+  const [newServiceName, setNewServiceName] = useState('');
 
   // Manual clients
   const [manualClients, setManualClients] = useState<ManualClientRecord[]>([]);
   const [manualClientsError, setManualClientsError] = useState<string | null>(null);
+  const [selectedClientAssignments, setSelectedClientAssignments] = useState<ClientConsultantAssignment[]>([]);
+  const [assignmentsLoading, setAssignmentsLoading] = useState(false);
+  const [assignmentDraft, setAssignmentDraft] = useState<AssignmentDraft>(() => defaultAssignmentDraft());
+  const [assignmentError, setAssignmentError] = useState<string | null>(null);
 
   // Client history
   const [clientHistory, setClientHistory] = useState<HistoryRecord[]>([]);
@@ -568,6 +659,8 @@ const AdvisorPortal = () => {
   const [clientError, setClientError] = useState<string | null>(null);
   const [clientSuccess, setClientSuccess] = useState<string | null>(null);
   const [newClientDraft, setNewClientDraft] = useState<ClientEditDraft>(() => createEmptyClientDraft());
+  const [newClientAssignments, setNewClientAssignments] = useState<AssignmentDraft[]>([]);
+  const [newClientAssignmentDraft, setNewClientAssignmentDraft] = useState<AssignmentDraft>(() => defaultAssignmentDraft());
   const [newClientFiles, setNewClientFiles] = useState<FileList | null>(null);
   const [newClientFileCampo, setNewClientFileCampo] = useState('archivos_extras');
   const [clientFiles, setClientFiles] = useState<ClientFileRecord[]>([]);
@@ -651,6 +744,36 @@ const AdvisorPortal = () => {
     }
   };
 
+  const loadCatalogs = async () => {
+    if (!authHeaders) return;
+    setCatalogsError(null);
+    try {
+      const [advisorsRes, servicesRes, consultantsRes] = await Promise.all([
+        fetch(getAdminUrl('/api/admin/asesores-comerciales'), { headers: authHeaders }),
+        fetch(getAdminUrl('/api/admin/servicios-clientes'), { headers: authHeaders }),
+        fetch(getAdminUrl('/api/admin/consultores'), { headers: authHeaders }),
+      ]);
+
+      if (!advisorsRes.ok || !servicesRes.ok || !consultantsRes.ok) {
+        throw new Error('No fue posible cargar los catalogos.');
+      }
+
+      const [advisorsPayload, servicesPayload, consultantsPayload] = await Promise.all([
+        advisorsRes.json(),
+        servicesRes.json(),
+        consultantsRes.json(),
+      ]);
+
+      setCommercialAdvisors(Array.isArray(advisorsPayload.data) ? advisorsPayload.data : []);
+      setClientServices(Array.isArray(servicesPayload.data) ? servicesPayload.data : []);
+      setConsultores(Array.isArray(consultantsPayload.data) ? consultantsPayload.data : []);
+      setConsultoresInitiallyLoaded(true);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Error de conexion al cargar catalogos.';
+      setCatalogsError(msg);
+    }
+  };
+
   const loadManualClients = async () => {
     if (!authHeaders) return;
     setManualClientsError(null);
@@ -694,6 +817,50 @@ const AdvisorPortal = () => {
       setClientFilesError(msg);
     } finally {
       setFilesLoading(false);
+    }
+  };
+
+  const loadClientAssignments = async (clientId: string) => {
+    if (!authHeaders) return;
+    setAssignmentsLoading(true);
+    setAssignmentError(null);
+    try {
+      const res = await fetch(getAdminUrl(`/api/admin/clientes-consultor/${clientId}/consultores`), { headers: authHeaders });
+      if (!res.ok) throw new Error('No fue posible cargar las asignaciones.');
+      const payload = await res.json();
+      setSelectedClientAssignments(Array.isArray(payload.data) ? payload.data : []);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Error al cargar asignaciones.';
+      setAssignmentError(msg);
+    } finally {
+      setAssignmentsLoading(false);
+    }
+  };
+
+  const handleCreateClientService = async () => {
+    if (!authHeaders) return;
+    const nombre = newServiceName.trim();
+    if (!nombre) return;
+
+    try {
+      const res = await fetch(getAdminUrl('/api/admin/servicios-clientes'), {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({ nombre }),
+      });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(payload?.error?.message || payload?.error || 'No fue posible crear el servicio.');
+      const service = payload?.data || { id: nombre, nombre };
+      setClientServices((current) => {
+        const exists = current.some((item) => item.nombre.toLowerCase() === nombre.toLowerCase());
+        return exists ? current : [...current, service].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+      });
+      setNewServiceName('');
+      toast.success('Servicio creado.');
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Error al crear servicio.';
+      setCatalogsError(msg);
+      toast.error(msg);
     }
   };
 
@@ -751,7 +918,7 @@ const AdvisorPortal = () => {
   useEffect(() => {
     if (view === 'clientes_consultor' && token) loadManualClients();
     if (view === 'historico_clientes' && token) loadClientHistory();
-    if (view === 'agregar_cliente' && token && isSuperAdmin && !consultoresInitiallyLoaded) loadConsultores();
+    if ((view === 'agregar_cliente' || view === 'clientes_consultor') && token) loadCatalogs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, isSuperAdmin]);
 
@@ -1015,12 +1182,17 @@ const AdvisorPortal = () => {
       setEditingClient(false);
       setEditClientDraft(null);
       setClientFiles([]);
+      setSelectedClientAssignments([]);
       setSelectedUploadFiles(null);
       setUploadCampo('archivos_extras');
+      setAssignmentDraft(defaultAssignmentDraft());
+      setAssignmentError(null);
       return;
     }
     setEditClientDraft(createClientEditDraft(selectedClient));
     loadClientFiles(selectedClient.id);
+    loadClientAssignments(selectedClient.id);
+    loadCatalogs();
   }, [selectedClient]);
 
   useEffect(() => {
@@ -1041,10 +1213,8 @@ const AdvisorPortal = () => {
   };
 
   const buildManualClientPayload = (draft: ClientEditDraft) => {
-    const servicios = draft.servicios
-      .split(',')
-      .map((item) => item.trim())
-      .filter(Boolean);
+    const servicios = draft.servicios.map((item) => item.trim()).filter(Boolean);
+    const sesiones = draft.sesiones.map((item) => item.trim()).filter(Boolean);
 
     return {
       no_cliente: draft.no_cliente.trim() || undefined,
@@ -1052,12 +1222,12 @@ const AdvisorPortal = () => {
       apellido: draft.apellido.trim() || undefined,
       email: draft.email.trim(),
       telefono_whatsapp: draft.telefono_whatsapp.trim() || undefined,
-      empresa: draft.empresa.trim() || undefined,
+      empresa: draft.empresa.trim() || 'NA',
       asesor_comercial: draft.asesor_comercial.trim() || undefined,
       evento_previo: draft.evento_previo.trim() || undefined,
       puesto: draft.puesto.trim() || undefined,
       servicios,
-      fuente_registro: draft.fuente_registro.trim() || 'manual_consultor',
+      fuente_registro: 'manual_consultor',
       fecha_registro: draft.fecha_registro || undefined,
       importe_total: draft.importe_total || undefined,
       ene: draft.ene || undefined,
@@ -1074,8 +1244,9 @@ const AdvisorPortal = () => {
       dic: draft.dic || undefined,
       saldo: draft.saldo || undefined,
       expediente: draft.expediente.trim() || undefined,
-      fecha_sesion_1: draft.fecha_sesion_1 || undefined,
-      fecha_sesion_2: draft.fecha_sesion_2 || undefined,
+      fecha_sesion_1: sesiones[0] || draft.fecha_sesion_1 || undefined,
+      fecha_sesion_2: sesiones[1] || draft.fecha_sesion_2 || undefined,
+      sesiones,
       observaciones: draft.observaciones.trim() || undefined,
       comentarios: draft.comentarios.trim() || undefined,
       benchmark: draft.benchmark.trim() || undefined,
@@ -1085,12 +1256,70 @@ const AdvisorPortal = () => {
       ct: draft.ct.trim() || undefined,
       comentarios_ct: draft.comentarios_ct.trim() || undefined,
       status: draft.status.trim() || undefined,
+      client_status: toClientStatus(draft.client_status),
       factura_1: draft.factura_1.trim() || undefined,
       factura_2: draft.factura_2.trim() || undefined,
       estatus_comercial: draft.estatus_comercial || 'cliente',
       notas: draft.notas.trim() || undefined,
-      consultor_id: isSuperAdmin ? draft.consultor_id || undefined : undefined,
     };
+  };
+
+  const handleCreateAssignment = async () => {
+    if (!authHeaders || !selectedClient) return;
+    setAssignmentError(null);
+
+    if (!assignmentDraft.consultor_id) {
+      setAssignmentError('Selecciona un consultor.');
+      return;
+    }
+
+    try {
+      setAssignmentsLoading(true);
+      const selectedService = clientServices.find((service) => service.id === assignmentDraft.servicio_id);
+      const res = await fetch(getAdminUrl(`/api/admin/clientes-consultor/${selectedClient.id}/consultores`), {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({
+          consultor_id: assignmentDraft.consultor_id,
+          servicio_id: assignmentDraft.servicio_id || undefined,
+          servicio_nombre: selectedService?.nombre,
+          etapa: assignmentDraft.etapa.trim() || selectedService?.nombre || undefined,
+          notas: assignmentDraft.notas.trim() || undefined,
+        }),
+      });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(payload?.error?.message || payload?.error || 'No fue posible crear la asignacion.');
+      setAssignmentDraft(defaultAssignmentDraft());
+      await loadClientAssignments(selectedClient.id);
+      toast.success('Consultor asignado.');
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Error al crear asignacion.';
+      setAssignmentError(msg);
+      toast.error(msg);
+    } finally {
+      setAssignmentsLoading(false);
+    }
+  };
+
+  const handleDeleteAssignment = async (assignmentId: string) => {
+    if (!authHeaders || !selectedClient) return;
+    try {
+      setAssignmentsLoading(true);
+      const res = await fetch(getAdminUrl(`/api/admin/clientes-consultor/${selectedClient.id}/consultores/${assignmentId}`), {
+        method: 'DELETE',
+        headers: authHeaders,
+      });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(payload?.error?.message || payload?.error || 'No fue posible quitar la asignacion.');
+      setSelectedClientAssignments((current) => current.filter((item) => item.id !== assignmentId));
+      toast.success('Asignacion eliminada.');
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Error al eliminar asignacion.';
+      setAssignmentError(msg);
+      toast.error(msg);
+    } finally {
+      setAssignmentsLoading(false);
+    }
   };
 
   const handleUpdateManualClient = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -1121,6 +1350,40 @@ const AdvisorPortal = () => {
   };
 
   // ── Register consultor ─────────────────────────────────────
+  const handleUpdateClientStatus = async (client: ManualClientRecord, clientStatus: string) => {
+    if (!authHeaders) return;
+
+    try {
+      const cleanStatus = toClientStatus(clientStatus);
+      const optimisticClient = { ...client, client_status: cleanStatus };
+      setManualClients((current) => current.map((item) => item.id === client.id ? optimisticClient : item));
+      if (selectedClient?.id === client.id) {
+        setSelectedClient(optimisticClient);
+        setEditClientDraft((current) => current ? { ...current, client_status: cleanStatus } : current);
+      }
+
+      const res = await fetch(getAdminUrl(`/api/admin/clientes-consultor/${client.id}/status`), {
+        method: 'PATCH',
+        headers: authHeaders,
+        body: JSON.stringify({ client_status: cleanStatus }),
+      });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(payload?.error?.message || payload?.error || 'No fue posible actualizar el status del cliente.');
+
+      const updated = payload?.data || optimisticClient;
+      setManualClients((current) => current.map((item) => item.id === client.id ? updated : item));
+      if (selectedClient?.id === client.id) {
+        setSelectedClient(updated);
+        setEditClientDraft(createClientEditDraft(updated));
+      }
+      toast.success('Status del cliente actualizado.');
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Error al actualizar status del cliente.';
+      toast.error(msg);
+      await loadManualClients();
+    }
+  };
+
   const handleRegisterConsultor = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setRegError(null);
@@ -1213,6 +1476,47 @@ const AdvisorPortal = () => {
 
   const resetClientForm = () => {
     setNewClientDraft(createEmptyClientDraft());
+    setNewClientAssignments([]);
+    setNewClientAssignmentDraft(defaultAssignmentDraft());
+  };
+
+  const getConsultorLabel = (consultorId: string) => {
+    const consultor = consultores.find((item) => item.id === consultorId);
+    if (!consultor) return 'Consultor';
+    return `${consultor.nombre}${consultor.apellido ? ` ${consultor.apellido}` : ''}`;
+  };
+
+  const getServiceLabel = (serviceId: string) => {
+    return clientServices.find((item) => item.id === serviceId)?.nombre || '';
+  };
+
+  const handleAddNewClientAssignment = () => {
+    setAssignmentError(null);
+    if (!newClientAssignmentDraft.consultor_id) {
+      setAssignmentError('Selecciona un consultor para agregarlo al cliente.');
+      return;
+    }
+
+    setNewClientAssignments((current) => [...current, newClientAssignmentDraft]);
+    setNewClientAssignmentDraft(defaultAssignmentDraft());
+  };
+
+  const postClientAssignment = async (clientId: string, draft: AssignmentDraft) => {
+    if (!authHeaders) return;
+    const selectedService = clientServices.find((service) => service.id === draft.servicio_id);
+    const res = await fetch(getAdminUrl(`/api/admin/clientes-consultor/${clientId}/consultores`), {
+      method: 'POST',
+      headers: authHeaders,
+      body: JSON.stringify({
+        consultor_id: draft.consultor_id,
+        servicio_id: draft.servicio_id || undefined,
+        servicio_nombre: selectedService?.nombre,
+        etapa: draft.etapa.trim() || selectedService?.nombre || undefined,
+        notas: draft.notas.trim() || undefined,
+      }),
+    });
+    const payload = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(payload?.error?.message || payload?.error || 'No fue posible guardar una asignacion.');
   };
 
   const handleCreateManualClient = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -1232,6 +1536,10 @@ const AdvisorPortal = () => {
       const msg = `Cliente "${payload.data?.nombre || newClientDraft.nombre}" agregado correctamente.`;
       setClientSuccess(msg);
       toast.success(msg);
+      if (newClientAssignments.length > 0 && payload.data?.id) {
+        await Promise.all(newClientAssignments.map((assignment) => postClientAssignment(payload.data.id, assignment)));
+        toast.success('Asignaciones de consultores guardadas.');
+      }
       if (newClientFiles?.length && payload.data?.id) {
         await uploadClientFiles(payload.data.id, newClientFiles, newClientFileCampo);
         toast.success('Archivos guardados correctamente.');
@@ -1434,6 +1742,7 @@ const AdvisorPortal = () => {
     const q = clientsSearch.trim().toLowerCase();
     return manualClients.filter((client) => {
       if (clientStatusFilter && toSafeText(client.estatus_comercial) !== clientStatusFilter) return false;
+      if (clientProcessStatusFilter && toClientStatus(client.client_status) !== clientProcessStatusFilter) return false;
       if (clientServiceFilter && !parseServicios(client.servicios).some((s) => s.toLowerCase() === clientServiceFilter.toLowerCase())) return false;
       if (!q) return true;
       const hay = [
@@ -1448,7 +1757,7 @@ const AdvisorPortal = () => {
       ].map(toSafeText).filter(Boolean).join(' ').toLowerCase();
       return hay.includes(q);
     });
-  }, [manualClients, clientsSearch, clientStatusFilter, clientServiceFilter]);
+  }, [manualClients, clientsSearch, clientStatusFilter, clientProcessStatusFilter, clientServiceFilter]);
 
   const filteredClientHistory = useMemo(() => {
     const q = historySearch.trim().toLowerCase();
@@ -1477,8 +1786,12 @@ const AdvisorPortal = () => {
   );
 
   const clientServiceOptions = useMemo(
-    () => Array.from(new Set(manualClients.flatMap((c) => parseServicios(c.servicios)).map((s) => s.trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'es')),
-    [manualClients]
+    () => clientServices
+      .filter((service) => service.activo !== false)
+      .map((service) => service.nombre.trim())
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b, 'es')),
+    [clientServices]
   );
 
   const historyTagOptions = useMemo(
@@ -1496,7 +1809,7 @@ const AdvisorPortal = () => {
     [clientHistory]
   );
 
-  const clientsActiveFilters = [clientStatusFilter, clientServiceFilter].filter(Boolean).length;
+  const clientsActiveFilters = [clientStatusFilter, clientProcessStatusFilter, clientServiceFilter].filter(Boolean).length;
   const historyActiveFilters = [historyTagFilter, historyOriginFilter, historyServiceFilter].filter(Boolean).length;
 
   // ─────────────────────────────────────────────────────────
@@ -1510,29 +1823,98 @@ const AdvisorPortal = () => {
     const input = (label: string, field: keyof ClientEditDraft, type = 'text', placeholder = '') => (
       <div className="advisor-field">
         <label>{label}</label>
-        <input type={type} value={draft[field]} onChange={(e) => onChange({ [field]: e.target.value } as Partial<ClientEditDraft>)} placeholder={placeholder} disabled={readOnly} />
+        <input type={type} value={toFormValue(draft[field])} onChange={(e) => onChange({ [field]: e.target.value } as Partial<ClientEditDraft>)} placeholder={placeholder} disabled={readOnly} />
       </div>
     );
 
     const textarea = (label: string, field: keyof ClientEditDraft, rows = 3) => (
       <div className="advisor-field">
         <label>{label}</label>
-        <textarea value={draft[field]} onChange={(e) => onChange({ [field]: e.target.value } as Partial<ClientEditDraft>)} rows={rows} disabled={readOnly} />
+        <textarea value={toFormValue(draft[field])} onChange={(e) => onChange({ [field]: e.target.value } as Partial<ClientEditDraft>)} rows={rows} disabled={readOnly} />
       </div>
     );
+
+    const toggleService = (serviceName: string) => {
+      const selected = draft.servicios.includes(serviceName);
+      onChange({
+        servicios: selected
+          ? draft.servicios.filter((item) => item !== serviceName)
+          : [...draft.servicios, serviceName],
+      });
+    };
+
+    const updateSession = (index: number, value: string) => {
+      const next = [...draft.sesiones];
+      next[index] = value;
+      onChange({ sesiones: next });
+    };
+
+    const removeSession = (index: number) => {
+      const next = draft.sesiones.filter((_, itemIndex) => itemIndex !== index);
+      onChange({ sesiones: next.length > 0 ? next : [''] });
+    };
+
+    const advisorOptions = commercialAdvisors.some((advisor) => advisor.nombre === draft.asesor_comercial)
+      ? commercialAdvisors
+      : draft.asesor_comercial
+        ? [{ id: draft.asesor_comercial, nombre: draft.asesor_comercial }, ...commercialAdvisors]
+        : commercialAdvisors;
+    const serviceOptions = [
+      ...draft.servicios
+        .filter((serviceName) => !clientServices.some((service) => service.nombre === serviceName))
+        .map((serviceName) => ({ id: serviceName, nombre: serviceName })),
+      ...clientServices,
+    ];
 
     return (
       <>
         <div className="advisor-client-form-section">
           <span className="advisor-client-section-label">Datos generales</span>
           <div className="advisor-register-row">{input('No. cliente', 'no_cliente')}{input('Fecha de registro', 'fecha_registro', 'date')}</div>
+          <div className="advisor-field">
+            <label>Status del Cliente</label>
+            <select value={toClientStatus(draft.client_status)} onChange={(e) => onChange({ client_status: e.target.value })} disabled={readOnly}>
+              {CLIENT_STATUS_OPTIONS.map((status) => <option key={status} value={status}>{status}</option>)}
+            </select>
+          </div>
           <div className="advisor-register-row">{input('Nombre *', 'nombre')}{input('Apellido', 'apellido')}</div>
           <div className="advisor-register-row">{input('Correo electronico *', 'email', 'email')}{input('Telefono / WhatsApp', 'telefono_whatsapp')}</div>
           <div className="advisor-register-row">{input('Empresa', 'empresa')}{input('Puesto', 'puesto')}</div>
-          <div className="advisor-register-row">{input('Asesor comercial', 'asesor_comercial')}{input('Evento previo', 'evento_previo')}</div>
+          <div className="advisor-register-row">
+            <div className="advisor-field">
+              <label>Asesor comercial</label>
+              <select value={draft.asesor_comercial} onChange={(e) => onChange({ asesor_comercial: e.target.value })} disabled={readOnly}>
+                <option value="">Selecciona asesor</option>
+                {advisorOptions.map((advisor) => <option key={advisor.id} value={advisor.nombre}>{advisor.nombre}</option>)}
+              </select>
+            </div>
+            {input('Evento previo', 'evento_previo')}
+          </div>
           <div className="advisor-field">
             <label>Servicios</label>
-            <input value={draft.servicios} onChange={(e) => onChange({ servicios: e.target.value })} placeholder="Fiscal, Contable, Financiera" disabled={readOnly} />
+            <div className="advisor-service-picker">
+              {serviceOptions.length === 0 ? (
+                <p className="advisor-client-detail-note">No hay servicios registrados.</p>
+              ) : serviceOptions.map((service) => {
+                const selected = draft.servicios.includes(service.nombre);
+                return (
+                <label key={service.id} className={`advisor-check-option${selected ? ' selected' : ''}`}>
+                  <input
+                    type="checkbox"
+                    checked={selected}
+                    onChange={() => toggleService(service.nombre)}
+                    disabled={readOnly}
+                  />
+                  <span>{service.nombre}</span>
+                </label>
+              );})}
+            </div>
+            {!readOnly && (
+              <div className="advisor-inline-create">
+                <input value={newServiceName} onChange={(e) => setNewServiceName(e.target.value)} placeholder="Nuevo servicio" />
+                <button type="button" className="advisor-ghost" onClick={handleCreateClientService}>Agregar servicio</button>
+              </div>
+            )}
           </div>
           <div className="advisor-register-row">
             <div className="advisor-field">
@@ -1545,18 +1927,9 @@ const AdvisorPortal = () => {
             </div>
             <div className="advisor-field">
               <label>Fuente</label>
-              <input value={draft.fuente_registro} onChange={(e) => onChange({ fuente_registro: e.target.value })} disabled={readOnly} />
+              <input value={draft.fuente_registro || 'manual_consultor'} readOnly disabled />
             </div>
           </div>
-          {isSuperAdmin && (
-            <div className="advisor-field">
-              <label>Consultor asignado</label>
-              <select value={draft.consultor_id} onChange={(e) => onChange({ consultor_id: e.target.value })} disabled={readOnly}>
-                <option value="">Mi usuario</option>
-                {consultores.map((c) => <option key={c.id} value={c.id}>{c.nombre}{c.apellido ? ` ${c.apellido}` : ''}</option>)}
-              </select>
-            </div>
-          )}
         </div>
 
         <div className="advisor-client-form-section">
@@ -1575,7 +1948,26 @@ const AdvisorPortal = () => {
         <div className="advisor-client-form-section">
           <span className="advisor-client-section-label">Expediente y sesiones</span>
           <div className="advisor-register-row">{input('Expediente', 'expediente')}{input('Status', 'status')}</div>
-          <div className="advisor-register-row">{input('Fecha sesion 1', 'fecha_sesion_1', 'date')}{input('Fecha sesion 2', 'fecha_sesion_2', 'date')}</div>
+          <div className="advisor-field">
+            <label>Fechas de sesiones</label>
+            <div className="advisor-session-date-list">
+              {draft.sesiones.map((sessionDate, index) => (
+                <div key={`session-${index}`} className="advisor-session-date-row">
+                  <input type="date" value={sessionDate} onChange={(e) => updateSession(index, e.target.value)} disabled={readOnly} />
+                  {!readOnly && (
+                    <button type="button" className="advisor-action danger" onClick={() => removeSession(index)}>
+                      Quitar
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+            {!readOnly && (
+              <button type="button" className="advisor-ghost advisor-add-session" onClick={() => onChange({ sesiones: [...draft.sesiones, ''] })}>
+                Agregar sesion
+              </button>
+            )}
+          </div>
           <div className="advisor-register-row">{input('Factura 1', 'factura_1')}{input('Factura 2', 'factura_2')}</div>
           {textarea('Observaciones', 'observaciones', 3)}
           {textarea('Comentarios', 'comentarios', 3)}
@@ -1649,6 +2041,144 @@ const AdvisorPortal = () => {
           ))}
         </div>
       )}
+    </div>
+  );
+
+  const renderClientAssignmentsSection = () => (
+    <div className="advisor-client-form-section advisor-assignments-section">
+      <span className="advisor-client-section-label">Consultores por servicio</span>
+      <div className="advisor-assignment-list">
+        {assignmentsLoading && selectedClientAssignments.length === 0 ? (
+          <p className="advisor-client-detail-note">Cargando asignaciones...</p>
+        ) : selectedClientAssignments.length === 0 ? (
+          <p className="advisor-client-detail-note">Sin consultores asignados.</p>
+        ) : (
+          selectedClientAssignments.map((assignment) => {
+            const consultantName = [assignment.consultor_nombre, assignment.consultor_apellido].filter(Boolean).join(' ');
+            return (
+              <div key={assignment.id} className="advisor-assignment-row">
+                <div>
+                  <strong>{consultantName || 'Consultor'}</strong>
+                  <span>{assignment.servicio_nombre || assignment.etapa || 'Sin servicio'}</span>
+                  {assignment.notas && <small>{assignment.notas}</small>}
+                </div>
+                <button type="button" className="advisor-action danger" disabled={assignmentsLoading} onClick={() => handleDeleteAssignment(assignment.id)}>
+                  Quitar
+                </button>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      <div className="advisor-assignment-form">
+        <div className="advisor-register-row">
+          <div className="advisor-field">
+            <label>Consultor</label>
+            <select value={assignmentDraft.consultor_id} onChange={(e) => setAssignmentDraft((current) => ({ ...current, consultor_id: e.target.value }))}>
+              <option value="">Selecciona consultor</option>
+              {consultores.filter((consultor) => consultor.activo !== false).map((consultor) => (
+                <option key={consultor.id} value={consultor.id}>
+                  {consultor.nombre}{consultor.apellido ? ` ${consultor.apellido}` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="advisor-field">
+            <label>Servicio / etapa</label>
+            <select value={assignmentDraft.servicio_id} onChange={(e) => setAssignmentDraft((current) => ({ ...current, servicio_id: e.target.value }))}>
+              <option value="">Selecciona servicio</option>
+              {clientServices.map((service) => <option key={service.id} value={service.id}>{service.nombre}</option>)}
+            </select>
+          </div>
+        </div>
+        <div className="advisor-register-row">
+          <div className="advisor-field">
+            <label>Etapa personalizada</label>
+            <input value={assignmentDraft.etapa} onChange={(e) => setAssignmentDraft((current) => ({ ...current, etapa: e.target.value }))} placeholder="Opcional" />
+          </div>
+          <div className="advisor-field">
+            <label>Notas</label>
+            <input value={assignmentDraft.notas} onChange={(e) => setAssignmentDraft((current) => ({ ...current, notas: e.target.value }))} placeholder="Opcional" />
+          </div>
+        </div>
+        <div className="advisor-register-actions compact">
+          <button type="button" className="advisor-submit" disabled={assignmentsLoading} onClick={handleCreateAssignment}>
+            {assignmentsLoading ? 'Guardando...' : 'Agregar asignacion'}
+          </button>
+        </div>
+        {assignmentError && <p className="advisor-error">{assignmentError}</p>}
+      </div>
+    </div>
+  );
+
+  const renderNewClientAssignmentsSection = () => (
+    <div className="advisor-client-form-section advisor-assignments-section">
+      <span className="advisor-client-section-label">Consultores por servicio</span>
+      <div className="advisor-assignment-list">
+        {newClientAssignments.length === 0 ? (
+          <p className="advisor-client-detail-note">Agrega uno o varios consultores antes de guardar el cliente.</p>
+        ) : (
+          newClientAssignments.map((assignment, index) => {
+            const serviceLabel = getServiceLabel(assignment.servicio_id) || assignment.etapa || 'Sin servicio';
+            return (
+              <div key={`${assignment.consultor_id}-${assignment.servicio_id}-${index}`} className="advisor-assignment-row">
+                <div>
+                  <strong>{getConsultorLabel(assignment.consultor_id)}</strong>
+                  <span>{serviceLabel}</span>
+                  {assignment.notas && <small>{assignment.notas}</small>}
+                </div>
+                <button
+                  type="button"
+                  className="advisor-action danger"
+                  onClick={() => setNewClientAssignments((current) => current.filter((_, itemIndex) => itemIndex !== index))}
+                >
+                  Quitar
+                </button>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      <div className="advisor-assignment-form">
+        <div className="advisor-register-row">
+          <div className="advisor-field">
+            <label>Consultor</label>
+            <select value={newClientAssignmentDraft.consultor_id} onChange={(e) => setNewClientAssignmentDraft((current) => ({ ...current, consultor_id: e.target.value }))}>
+              <option value="">Selecciona consultor</option>
+              {consultores.filter((consultor) => consultor.activo !== false).map((consultor) => (
+                <option key={consultor.id} value={consultor.id}>
+                  {consultor.nombre}{consultor.apellido ? ` ${consultor.apellido}` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="advisor-field">
+            <label>Servicio / etapa</label>
+            <select value={newClientAssignmentDraft.servicio_id} onChange={(e) => setNewClientAssignmentDraft((current) => ({ ...current, servicio_id: e.target.value }))}>
+              <option value="">Selecciona servicio</option>
+              {clientServices.map((service) => <option key={service.id} value={service.id}>{service.nombre}</option>)}
+            </select>
+          </div>
+        </div>
+        <div className="advisor-register-row">
+          <div className="advisor-field">
+            <label>Etapa personalizada</label>
+            <input value={newClientAssignmentDraft.etapa} onChange={(e) => setNewClientAssignmentDraft((current) => ({ ...current, etapa: e.target.value }))} placeholder="Opcional" />
+          </div>
+          <div className="advisor-field">
+            <label>Notas</label>
+            <input value={newClientAssignmentDraft.notas} onChange={(e) => setNewClientAssignmentDraft((current) => ({ ...current, notas: e.target.value }))} placeholder="Opcional" />
+          </div>
+        </div>
+        <div className="advisor-register-actions compact">
+          <button type="button" className="advisor-submit" onClick={handleAddNewClientAssignment}>
+            Agregar consultor
+          </button>
+        </div>
+        {assignmentError && <p className="advisor-error">{assignmentError}</p>}
+      </div>
     </div>
   );
 
@@ -2162,6 +2692,9 @@ const AdvisorPortal = () => {
                     <p className="advisor-consultor-meta">{selectedClient.email}</p>
                   </div>
                   <div className="advisor-client-top-actions">
+                    <span className="advisor-client-status-pill">
+                      {toClientStatus(selectedClient.client_status)}
+                    </span>
                     <span className={`advisor-badge ${ESTATUS_COLORS[selectedClient.estatus_comercial as EstatusComercial] || ''}`}>
                       {selectedClient.estatus_comercial || 'cliente'}
                     </span>
@@ -2184,7 +2717,9 @@ const AdvisorPortal = () => {
 
                 {editClientDraft && (
                   <form className={`advisor-form advisor-client-edit-form ${!editingClient ? 'is-readonly' : ''}`} onSubmit={handleUpdateManualClient} noValidate>
+                    {catalogsError && <p className="advisor-error">{catalogsError}</p>}
                     {renderPdfClientFields(editClientDraft, updateEditClientDraft, !editingClient)}
+                    {renderClientAssignmentsSection()}
                     {renderClientFilesSection()}
                     {editingClient && (
                       <div className="advisor-register-actions">
@@ -2242,10 +2777,17 @@ const AdvisorPortal = () => {
                     <div className="advisor-filter-dropdown">
                       <div className="advisor-filter-dropdown-inner">
                         <div className="advisor-field">
-                          <label>Estatus</label>
+                          <label>Estatus comercial</label>
                           <select value={clientStatusFilter} onChange={(e) => setClientStatusFilter(e.target.value)}>
                             <option value="">Todos los estatus</option>
                             {clientStatusOptions.map((s) => <option key={s} value={s}>{s}</option>)}
+                          </select>
+                        </div>
+                        <div className="advisor-field">
+                          <label>Status del Cliente</label>
+                          <select value={clientProcessStatusFilter} onChange={(e) => setClientProcessStatusFilter(e.target.value)}>
+                            <option value="">Todos los status</option>
+                            {CLIENT_STATUS_OPTIONS.map((status) => <option key={status} value={status}>{status}</option>)}
                           </select>
                         </div>
                         <div className="advisor-field">
@@ -2259,7 +2801,7 @@ const AdvisorPortal = () => {
                           <button
                             type="button"
                             className="advisor-ghost"
-                            onClick={() => { setClientStatusFilter(''); setClientServiceFilter(''); }}
+                            onClick={() => { setClientStatusFilter(''); setClientProcessStatusFilter(''); setClientServiceFilter(''); }}
                           >
                             Limpiar filtros
                           </button>
@@ -2303,6 +2845,7 @@ const AdvisorPortal = () => {
                   {filteredManualClients.map((client, idx) => {
                     const services = parseServicios(client.servicios);
                     const consultorName = [client.consultor_nombre, client.consultor_apellido].filter(Boolean).join(' ');
+                    const assignedConsultants = Array.isArray(client.consultor_asignaciones) ? client.consultor_asignaciones : [];
                     const isExpanded = expandedClientId === client.id;
                     return (
                       <motion.article
@@ -2340,6 +2883,17 @@ const AdvisorPortal = () => {
                           <span>{client.email}</span>
                         </p>
 
+                        <div className="advisor-client-status-quick" onClick={(e) => e.stopPropagation()}>
+                          <span>Status del Cliente</span>
+                          <select
+                            value={toClientStatus(client.client_status)}
+                            onChange={(e) => handleUpdateClientStatus(client, e.target.value)}
+                            aria-label={`Status del Cliente de ${client.nombre}`}
+                          >
+                            {CLIENT_STATUS_OPTIONS.map((status) => <option key={status} value={status}>{status}</option>)}
+                          </select>
+                        </div>
+
                         <AnimatePresence initial={false}>
                           {isExpanded && (
                             <motion.div
@@ -2365,7 +2919,12 @@ const AdvisorPortal = () => {
                                 </p>
                               </div>
                               <div className="advisor-client-card-tags">
-                                {consultorName && <span className="advisor-client-tag">Consultor: {consultorName}</span>}
+                                {assignedConsultants.length > 0 ? (
+                                  assignedConsultants.slice(0, 3).map((assignment) => {
+                                    const assignedName = [assignment.consultor_nombre, assignment.consultor_apellido].filter(Boolean).join(' ');
+                                    return <span key={assignment.id} className="advisor-client-tag">{assignedName || 'Consultor'}: {assignment.servicio_nombre || assignment.etapa || 'Servicio'}</span>;
+                                  })
+                                ) : consultorName && <span className="advisor-client-tag">Consultor: {consultorName}</span>}
                                 <span className="advisor-client-tag muted">{client.fuente_registro || 'manual_consultor'}</span>
                               </div>
                               {services.length > 0 && (
@@ -2408,13 +2967,15 @@ const AdvisorPortal = () => {
               <div>
                 <span className="advisor-kicker">Nuevo cliente</span>
                 <h1 className="advisor-title">Agregar cliente</h1>
-                <p className="advisor-copy">Registra clientes no organicos en CLIENTES_CONSULTOR.</p>
+                <p className="advisor-copy">Registra clientes no organicos y asigna los consultores que participan en cada servicio.</p>
               </div>
             </header>
 
             <div className="advisor-board advisor-register-board">
               <form className="advisor-form advisor-register-form" onSubmit={handleCreateManualClient} noValidate>
+                {catalogsError && <p className="advisor-error">{catalogsError}</p>}
                 {renderPdfClientFields(newClientDraft, updateNewClientDraft, false)}
+                {renderNewClientAssignmentsSection()}
                 {renderNewClientFilesSection()}
                 <div className="advisor-register-actions">
                   <button type="submit" className="advisor-submit" disabled={loading}>

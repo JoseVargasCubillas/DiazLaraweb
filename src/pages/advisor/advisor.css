@@ -110,6 +110,20 @@
   color: rgba(255, 255, 255, 0.45);
 }
 
+.advisor-field select option,
+.advisor-client-status-quick select option,
+.advisor-schedule select option {
+  background: var(--advisor-navy-800);
+  color: #ffffff;
+}
+
+.advisor-field select option:checked,
+.advisor-client-status-quick select option:checked,
+.advisor-schedule select option:checked {
+  background: #1f6ed4;
+  color: #ffffff;
+}
+
 .advisor-field input:focus,
 .advisor-field select:focus,
 .advisor-field textarea:focus,
@@ -983,6 +997,115 @@
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
+.advisor-assignments-section {
+  gap: 14px;
+}
+
+.advisor-assignment-list {
+  display: grid;
+  gap: 10px;
+}
+
+.advisor-assignment-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--advisor-border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.advisor-assignment-row div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.advisor-assignment-row strong {
+  color: #fff;
+  font-size: 14px;
+}
+
+.advisor-assignment-row span,
+.advisor-assignment-row small {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 12px;
+}
+
+.advisor-assignment-form {
+  display: grid;
+  gap: 12px;
+}
+
+.advisor-service-picker,
+.advisor-session-date-list {
+  display: grid;
+  gap: 8px;
+}
+
+.advisor-field .advisor-check-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 9px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(245, 247, 251, 0.92);
+  font: 700 13px/1.2 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.advisor-field .advisor-check-option.selected {
+  background: rgba(16, 215, 223, 0.18);
+  border-color: rgba(16, 215, 223, 0.56);
+  color: #ffffff;
+  box-shadow: 0 0 0 1px rgba(16, 215, 223, 0.18) inset;
+}
+
+.advisor-field .advisor-check-option.selected span {
+  color: #ffffff;
+}
+
+.advisor-check-option input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--c-accent);
+}
+
+.advisor-inline-create,
+.advisor-session-date-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.advisor-inline-create {
+  margin-top: 10px;
+}
+
+.advisor-inline-create input,
+.advisor-session-date-row input {
+  flex: 1 1 auto;
+}
+
+.advisor-session-date-row .advisor-action {
+  flex: 0 0 auto;
+}
+
+.advisor-add-session {
+  justify-self: start;
+  margin-top: 8px;
+}
+
+.advisor-register-actions.compact {
+  margin-top: 0;
+}
+
 .advisor-client-row {
   align-items: flex-start;
 }
@@ -1219,6 +1342,49 @@
 .advisor-client-compact-meta span {
   color: rgba(169, 187, 213, 0.78);
   font-size: 12px;
+}
+
+.advisor-client-status-quick {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.advisor-client-status-quick span {
+  color: rgba(169, 187, 213, 0.66);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.advisor-client-status-quick select {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid rgba(16, 215, 223, 0.22);
+  border-radius: 8px;
+  background: rgba(9, 26, 51, 0.55);
+  color: #f5f7fb;
+  padding: 8px 10px;
+  font: 700 12px/1.2 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+.advisor-client-status-pill {
+  display: inline-flex;
+  align-items: center;
+  max-width: 280px;
+  min-height: 34px;
+  padding: 8px 11px;
+  border-radius: 999px;
+  background: rgba(16, 215, 223, 0.1);
+  border: 1px solid rgba(16, 215, 223, 0.22);
+  color: #9af3f6;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .advisor-client-compact-meta strong {
@@ -1605,11 +1771,37 @@
   background: var(--c-bg-muted);
   border-color: var(--c-border-subtle);
 }
+:root[data-theme="light"] .advisor-field .advisor-check-option {
+  background: #fff;
+  border-color: var(--c-border);
+  color: var(--c-text-primary);
+}
+:root[data-theme="light"] .advisor-field .advisor-check-option.selected {
+  background: rgba(8, 145, 178, 0.12);
+  border-color: rgba(8, 145, 178, 0.42);
+  color: #075985;
+}
+:root[data-theme="light"] .advisor-field .advisor-check-option.selected span {
+  color: #075985;
+}
 :root[data-theme="light"] .advisor-client-fact span {
   color: var(--c-text-muted);
 }
 :root[data-theme="light"] .advisor-client-fact strong {
   color: var(--c-text-primary);
+}
+:root[data-theme="light"] .advisor-client-status-quick span {
+  color: var(--c-text-muted);
+}
+:root[data-theme="light"] .advisor-client-status-quick select {
+  background: #fff;
+  border-color: var(--c-border);
+  color: var(--c-text-primary);
+}
+:root[data-theme="light"] .advisor-client-status-pill {
+  background: rgba(8, 145, 178, 0.10);
+  border-color: rgba(8, 145, 178, 0.24);
+  color: #075985;
 }
 :root[data-theme="light"] .advisor-client-tag {
   background: rgba(8, 145, 178, 0.08);
@@ -1683,6 +1875,10 @@
 :root[data-theme="light"] .advisor-hint,
 :root[data-theme="light"] .advisor-note,
 :root[data-theme="light"] .advisor-lead-org { color: var(--c-text-secondary); }
+:root[data-theme="light"] .advisor-field label,
+:root[data-theme="light"] .advisor-schedule label {
+  color: var(--c-text-secondary);
+}
 :root[data-theme="light"] .advisor-field input,
 :root[data-theme="light"] .advisor-field select,
 :root[data-theme="light"] .advisor-field textarea,
@@ -1690,7 +1886,25 @@
 :root[data-theme="light"] .advisor-schedule select {
   background: #fff;
   color: var(--c-text-primary);
+  -webkit-text-fill-color: var(--c-text-primary);
   border-color: var(--c-border);
+  opacity: 1;
+}
+:root[data-theme="light"] .advisor-field select option,
+:root[data-theme="light"] .advisor-client-status-quick select option,
+:root[data-theme="light"] .advisor-schedule select option {
+  background: #fff;
+  color: var(--c-text-primary);
+}
+:root[data-theme="light"] .advisor-field input:disabled,
+:root[data-theme="light"] .advisor-field select:disabled,
+:root[data-theme="light"] .advisor-field textarea:disabled,
+:root[data-theme="light"] .advisor-schedule input:disabled,
+:root[data-theme="light"] .advisor-schedule select:disabled {
+  background: var(--c-bg-muted);
+  color: var(--c-text-primary);
+  -webkit-text-fill-color: var(--c-text-primary);
+  opacity: 1;
 }
 :root[data-theme="light"] .advisor-field input::placeholder,
 :root[data-theme="light"] .advisor-field textarea::placeholder { color: var(--c-text-muted); }
@@ -2235,6 +2449,10 @@
   gap: 8px;
 }
 
+.advisor-service-picker .advisor-check-option {
+  flex: 0 1 auto;
+}
+
 .advisor-service-picker button {
   border: 1px solid var(--c-border);
   border-radius: 999px;
@@ -2401,6 +2619,7 @@
   cursor: default;
   opacity: 1;
   color: var(--c-text-primary);
+  -webkit-text-fill-color: var(--c-text-primary);
   background: var(--c-bg-muted);
 }
 
