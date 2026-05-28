@@ -308,6 +308,14 @@ const toSafeText = (value: unknown) => {
   return '';
 };
 
+const getConsultorId = (consultor: Partial<ConsultorProfile> & Record<string, unknown>) => {
+  return (
+    toSafeText(consultor.id).trim() ||
+    toSafeText(consultor.consultor_id).trim() ||
+    toSafeText(consultor.uuid).trim()
+  );
+};
+
 const parseServicios = (servicios: string[] | string | null | undefined) => {
   if (Array.isArray(servicios)) {
     return servicios.map(toSafeText).filter(Boolean);
@@ -1481,7 +1489,7 @@ const AdvisorPortal = () => {
   };
 
   const getConsultorLabel = (consultorId: string) => {
-    const consultor = consultores.find((item) => item.id === consultorId);
+    const consultor = consultores.find((item) => getConsultorId(item) === consultorId);
     if (!consultor) return 'Consultor';
     return `${consultor.nombre}${consultor.apellido ? ` ${consultor.apellido}` : ''}`;
   };
@@ -2077,11 +2085,15 @@ const AdvisorPortal = () => {
             <label>Consultor</label>
             <select value={assignmentDraft.consultor_id} onChange={(e) => setAssignmentDraft((current) => ({ ...current, consultor_id: e.target.value }))}>
               <option value="">Selecciona consultor</option>
-              {consultores.filter((consultor) => consultor.activo !== false).map((consultor) => (
-                <option key={consultor.id} value={consultor.id}>
-                  {consultor.nombre}{consultor.apellido ? ` ${consultor.apellido}` : ''}
-                </option>
-              ))}
+              {consultores.filter((consultor) => consultor.activo !== false).map((consultor) => {
+                const consultorId = getConsultorId(consultor);
+                if (!consultorId) return null;
+                return (
+                  <option key={consultorId} value={consultorId}>
+                    {consultor.nombre}{consultor.apellido ? ` ${consultor.apellido}` : ''}
+                  </option>
+                );
+              })}
             </select>
           </div>
           <div className="advisor-field">
@@ -2147,11 +2159,15 @@ const AdvisorPortal = () => {
             <label>Consultor</label>
             <select value={newClientAssignmentDraft.consultor_id} onChange={(e) => setNewClientAssignmentDraft((current) => ({ ...current, consultor_id: e.target.value }))}>
               <option value="">Selecciona consultor</option>
-              {consultores.filter((consultor) => consultor.activo !== false).map((consultor) => (
-                <option key={consultor.id} value={consultor.id}>
-                  {consultor.nombre}{consultor.apellido ? ` ${consultor.apellido}` : ''}
-                </option>
-              ))}
+              {consultores.filter((consultor) => consultor.activo !== false).map((consultor) => {
+                const consultorId = getConsultorId(consultor);
+                if (!consultorId) return null;
+                return (
+                  <option key={consultorId} value={consultorId}>
+                    {consultor.nombre}{consultor.apellido ? ` ${consultor.apellido}` : ''}
+                  </option>
+                );
+              })}
             </select>
           </div>
           <div className="advisor-field">
