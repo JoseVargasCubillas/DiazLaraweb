@@ -322,6 +322,21 @@ const getConsultorId = (consultor: Partial<ConsultorProfile> & Record<string, un
   );
 };
 
+const normalizePersonName = (value: unknown) => {
+  return toSafeText(value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase();
+};
+
+const isAgendaRoundRobinConsultor = (consultor?: Partial<ConsultorProfile> | null) => {
+  if (!consultor) return false;
+  const name = normalizePersonName(consultor.nombre);
+  const fullName = normalizePersonName(`${consultor.nombre || ''} ${consultor.apellido || ''}`);
+  return name === 'daniela' || name === 'jesus' || fullName.includes('daniela') || fullName.includes('jesus');
+};
+
 const parseServicios = (servicios: string[] | string | null | undefined) => {
   if (Array.isArray(servicios)) {
     return servicios.map(toSafeText).filter(Boolean);
@@ -701,6 +716,7 @@ const AdvisorPortal = () => {
     : undefined;
   const authOnlyHeaders = token ? { Authorization: `Bearer ${token}` } : undefined;
   const isSuperAdmin = profile?.rol === 'super_admin';
+  const canScheduleOrganicAgendaLeads = isSuperAdmin || isAgendaRoundRobinConsultor(profile);
 
   // ── Loaders ────────────────────────────────────────────────
   const loadProfile = async (nextToken: string) => {
@@ -2597,7 +2613,7 @@ const AdvisorPortal = () => {
                             Pasar a cliente
                           </button>
                         )}
-                        {lead.estado !== 'rechazado' && (
+                        {lead.estado !== 'rechazado' && canScheduleOrganicAgendaLeads && (
                           <button type="button" className="advisor-ghost" onClick={() => toggleSchedule(lead.id)}>
                             {expandedLeadId === lead.id
                               ? 'Cancelar'
