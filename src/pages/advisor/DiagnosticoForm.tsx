@@ -418,7 +418,7 @@ function DiagnosticoForm({ clientId, refType = 'cliente_consultor', readOnly = f
         tf('3. Giro principal de la empresa', 'q03'),
         ta('4. Actividades secundarias o líneas de negocio adicionales', 'q04'),
         row2(
-          df('5. Fecha de inicio de operaciones', 'q05'),
+          tf('5. Inicio de operaciones', 'q05', 'Ej. hace 3 años'),
           tf('6. Ciudad y estado donde opera principalmente', 'q06')
         ),
         chk('7. Países donde tiene presencia u operaciones', 'q07',
