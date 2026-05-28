@@ -144,7 +144,9 @@ type ManualClientRecord = {
   client_status?: ClientStatus | string | null;
   sesiones?: string[] | string | null;
   factura_1?: string | null;
+  drive_1?: string | null;
   factura_2?: string | null;
+  drive_2?: string | null;
   estatus_comercial?: EstatusComercial | string | null;
   notas?: string | null;
   created_at?: string | null;
@@ -205,7 +207,9 @@ type ClientEditDraft = {
   status: string;
   client_status: string;
   factura_1: string;
+  drive_1: string;
   factura_2: string;
+  drive_2: string;
   estatus_comercial: string;
   notas: string;
   consultor_id: string;
@@ -266,7 +270,9 @@ type HistoryRecord = {
   client_status?: ClientStatus | string | null;
   sesiones?: string[] | string | null;
   factura_1?: string | null;
+  drive_1?: string | null;
   factura_2?: string | null;
+  drive_2?: string | null;
   etiqueta?: string | null;
   motivo?: string | null;
   estado_lead?: string | null;
@@ -416,7 +422,9 @@ const createEmptyClientDraft = (): ClientEditDraft => ({
   status: '',
   client_status: CLIENT_STATUS_DEFAULT,
   factura_1: '',
+  drive_1: '',
   factura_2: '',
+  drive_2: '',
   estatus_comercial: 'cliente',
   notas: '',
   consultor_id: '',
@@ -464,7 +472,9 @@ const createClientEditDraft = (client: ManualClientRecord): ClientEditDraft => (
   status: toFormValue(client.status),
   client_status: toClientStatus(client.client_status),
   factura_1: toFormValue(client.factura_1),
+  drive_1: toFormValue(client.drive_1),
   factura_2: toFormValue(client.factura_2),
+  drive_2: toFormValue(client.drive_2),
   estatus_comercial: toFormValue(client.estatus_comercial) || 'cliente',
   notas: toFormValue(client.notas),
   consultor_id: toFormValue(client.consultor_id),
@@ -512,7 +522,9 @@ const createHistoryClientDraft = (item: HistoryRecord): ClientEditDraft => ({
   status: toFormValue(item.status || item.etiqueta || item.estado_lead),
   client_status: toClientStatus(item.client_status),
   factura_1: toFormValue(item.factura_1),
+  drive_1: toFormValue(item.drive_1),
   factura_2: toFormValue(item.factura_2),
+  drive_2: toFormValue(item.drive_2),
   estatus_comercial: toFormValue(item.estatus_comercial || item.estado_lead),
   notas: toFormValue(item.motivo),
   consultor_id: toFormValue(item.consultor_id),
@@ -1266,7 +1278,9 @@ const AdvisorPortal = () => {
       status: draft.status.trim() || undefined,
       client_status: toClientStatus(draft.client_status),
       factura_1: draft.factura_1.trim() || undefined,
+      drive_1: draft.drive_1.trim() || undefined,
       factura_2: draft.factura_2.trim() || undefined,
+      drive_2: draft.drive_2.trim() || undefined,
       estatus_comercial: draft.estatus_comercial || 'cliente',
       notas: draft.notas.trim() || undefined,
     };
@@ -1976,7 +1990,8 @@ const AdvisorPortal = () => {
               </button>
             )}
           </div>
-          <div className="advisor-register-row">{input('Factura 1', 'factura_1')}{input('Factura 2', 'factura_2')}</div>
+          <div className="advisor-register-row">{input('Factura 1', 'factura_1')}{input('Drive 1', 'drive_1')}</div>
+          <div className="advisor-register-row">{input('Factura 2', 'factura_2')}{input('Drive 2', 'drive_2')}</div>
           {textarea('Observaciones', 'observaciones', 3)}
           {textarea('Comentarios', 'comentarios', 3)}
         </div>
