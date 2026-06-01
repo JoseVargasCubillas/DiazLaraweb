@@ -205,6 +205,57 @@
   padding: 24px;
 }
 
+.advisor-sync-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  padding: 18px;
+  margin-bottom: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.18);
+}
+
+.advisor-sync-panel h2 {
+  margin: 4px 0 6px;
+  font-size: 1rem;
+  letter-spacing: 0;
+}
+
+.advisor-sync-panel p {
+  margin: 0;
+  color: var(--advisor-muted);
+  font-size: 0.9rem;
+}
+
+.advisor-sync-actions,
+.advisor-sync-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.advisor-sync-summary {
+  grid-column: 1 / -1;
+}
+
+.advisor-sync-summary span {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  padding: 6px 10px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 8px;
+  color: var(--advisor-muted);
+  font-size: 0.86rem;
+}
+
+.advisor-sync-summary strong {
+  color: var(--advisor-text);
+}
+
 .advisor-filters {
   display: flex;
   gap: 10px;
@@ -630,6 +681,15 @@
 
   .advisor-board {
     padding: 16px;
+  }
+
+  .advisor-sync-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .advisor-sync-actions .advisor-submit,
+  .advisor-sync-actions .advisor-ghost {
+    width: 100%;
   }
 
   .advisor-lead-card {

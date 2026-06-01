@@ -567,6 +567,21 @@ const formatFileSize = (bytes?: number | null) => {
 
 const getHistoryRestoreId = (history: HistoryRecord) => history.cliente_manual_id || history.cliente_id || '';
 
+type ConsultoriaSyncSummary = {
+  processed?: number;
+  synced?: number;
+  failed?: number;
+  skipped?: number;
+  remaining?: number;
+  results?: Array<{
+    id?: string;
+    email?: string;
+    success?: boolean;
+    clienteId?: number | string;
+    error?: string;
+  }>;
+};
+
 const AdvisorPortal = () => {
   const toast = useToast();
   const { theme, toggleTheme } = useTheme();
@@ -592,6 +607,9 @@ const AdvisorPortal = () => {
   const [scheduleErrors, setScheduleErrors] = useState<Record<string, string>>({});
   const [consultoresSearch, setConsultoresSearch] = useState('');
   const [consultoresInitiallyLoaded, setConsultoresInitiallyLoaded] = useState(false);
+  const [consultoriaSyncLoading, setConsultoriaSyncLoading] = useState<'retry' | 'backfill' | 'reconcile' | null>(null);
+  const [consultoriaSyncResult, setConsultoriaSyncResult] = useState<ConsultoriaSyncSummary | null>(null);
+  const [consultoriaSyncError, setConsultoriaSyncError] = useState<string | null>(null);
   const [clientsSearch, setClientsSearch] = useState('');
   const [clientsInitiallyLoaded, setClientsInitiallyLoaded] = useState(false);
   const [historySearch, setHistorySearch] = useState('');
@@ -1470,6 +1488,37 @@ const AdvisorPortal = () => {
       await loadConsultores();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Error al actualizar.');
+    }
+  };
+
+  const handleConsultoriaSync = async (mode: 'retry' | 'backfill' | 'reconcile') => {
+    if (!authHeaders) return;
+    setConsultoriaSyncLoading(mode);
+    setConsultoriaSyncError(null);
+    setConsultoriaSyncResult(null);
+
+    try {
+      const endpoint = mode === 'retry'
+        ? '/api/admin/consultoria-sync/retry'
+        : mode === 'reconcile'
+          ? '/api/admin/consultoria-sync/reconcile?limit=50'
+          : '/api/admin/consultoria-sync/backfill?limit=50';
+      const res = await fetch(getAdminUrl(endpoint), {
+        method: 'POST',
+        headers: authHeaders,
+      });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(payload?.error?.message || payload?.error || 'No fue posible ejecutar la sincronizacion.');
+
+      const result = payload?.data || {};
+      setConsultoriaSyncResult(result);
+      toast.success(`Consultoria: ${result.synced || 0} sincronizados, ${result.failed || 0} fallidos.`);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Error al sincronizar con Consultoria.';
+      setConsultoriaSyncError(msg);
+      toast.error(msg);
+    } finally {
+      setConsultoriaSyncLoading(null);
     }
   };
 
@@ -3331,6 +3380,52 @@ const AdvisorPortal = () => {
             </header>
 
             <div className="advisor-board">
+              <div className="advisor-sync-panel">
+                <div>
+                  <span className="advisor-kicker">Consultoria</span>
+                  <h2>Sincronizacion de clientes</h2>
+                  <p>Verifica existentes, reintenta pendientes o sube clientes activos de Diaz Lara por lotes de 50.</p>
+                </div>
+                <div className="advisor-sync-actions">
+                  <button
+                    type="button"
+                    className="advisor-ghost"
+                    onClick={() => handleConsultoriaSync('reconcile')}
+                    disabled={consultoriaSyncLoading !== null}
+                  >
+                    {consultoriaSyncLoading === 'reconcile' ? 'Verificando...' : 'Verificar existentes'}
+                  </button>
+                  <button
+                    type="button"
+                    className="advisor-ghost"
+                    onClick={() => handleConsultoriaSync('retry')}
+                    disabled={consultoriaSyncLoading !== null}
+                  >
+                    {consultoriaSyncLoading === 'retry' ? 'Reintentando...' : 'Reintentar pendientes'}
+                  </button>
+                  <button
+                    type="button"
+                    className="advisor-submit"
+                    onClick={() => handleConsultoriaSync('backfill')}
+                    disabled={consultoriaSyncLoading !== null}
+                  >
+                    {consultoriaSyncLoading === 'backfill' ? 'Subiendo...' : 'Subir existentes'}
+                  </button>
+                </div>
+                {consultoriaSyncError && <p className="advisor-error">{consultoriaSyncError}</p>}
+                {consultoriaSyncResult && (
+                  <div className="advisor-sync-summary">
+                    <span>Procesados <strong>{consultoriaSyncResult.processed || 0}</strong></span>
+                    <span>Subidos <strong>{consultoriaSyncResult.synced || 0}</strong></span>
+                    <span>Omitidos <strong>{consultoriaSyncResult.skipped || 0}</strong></span>
+                    <span>Fallidos <strong>{consultoriaSyncResult.failed || 0}</strong></span>
+                    {'remaining' in consultoriaSyncResult && (
+                      <span>Pendientes <strong>{consultoriaSyncResult.remaining || 0}</strong></span>
+                    )}
+                  </div>
+                )}
+              </div>
+
               <div className="advisor-leads-toolbar">
                 <div className="advisor-search">
                   <span className="advisor-search-icon" aria-hidden>🔍</span>
