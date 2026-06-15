@@ -1,6 +1,9 @@
 {
   "permissions": {
     "allow": [
+      "Bash(python \"C:\\\\Users\\\\USER\\\\.claude\\\\skills\\\\ui-ux-pro-max\\\\scripts\\\\search.py\" \"internal admin CRM dashboard professional minimal dark\" --design-system -p \"DiazLara Advisor Portal\" -f markdown)",
+      "Bash(python \"C:\\\\Users\\\\USER\\\\.claude\\\\skills\\\\ui-ux-pro-max\\\\scripts\\\\search.py\" \"admin panel dashboard CRM intuitive\" --domain ux -n 5)",
+      "Bash(npm run *)",
       "Bash(npx tsc *)"
     ]
   }

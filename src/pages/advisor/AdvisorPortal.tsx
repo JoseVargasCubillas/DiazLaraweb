@@ -13,6 +13,79 @@ import { CLIENT_STATUS_DEFAULT, CLIENT_STATUS_OPTIONS, isClientStatus } from './
 import type { ClientStatus } from './clientStatus';
 
 
+// ── Inline SVG icons ──────────────────────────────────────────
+const IcoSun = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+  </svg>
+);
+const IcoMoon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+  </svg>
+);
+const IcoEye = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+  </svg>
+);
+const IcoEyeOff = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>
+  </svg>
+);
+const IcoRefresh = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-.26-4.71"/>
+  </svg>
+);
+const IcoSearch = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+  </svg>
+);
+const IcoInbox = () => (
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
+  </svg>
+);
+const IcoVideo = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+  </svg>
+);
+const IcoCheck = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <polyline points="20 6 9 17 4 12"/>
+  </svg>
+);
+const IcoCalendar = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+  </svg>
+);
+const IcoX = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+  </svg>
+);
+const IcoTrash = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+  </svg>
+);
+const IcoUsers = () => (
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+  </svg>
+);
+const IcoFolder = () => (
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+  </svg>
+);
+// ─────────────────────────────────────────────────────────────
+
 const API_BASE_URL = (import.meta.env.VITE_API_URL as string | undefined)?.trim() || 'http://localhost:3000';
 const IS_LOCAL_API = /^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(API_BASE_URL);
 const IS_PRODUCTION_HOST = typeof window !== 'undefined'
@@ -1532,6 +1605,12 @@ const AdvisorPortal = () => {
       });
       if (!res.ok) {
         const p = await res.json().catch(() => null);
+        if (res.status === 409 || res.status >= 500) {
+          const serverMsg = p?.error?.message || p?.error || '';
+          const msg = serverMsg ||
+            `No se puede eliminar a «${c.nombre}» porque tiene leads, citas o clientes vinculados. Usa «Desactivar» para inhabilitarlo sin perder el historial.`;
+          throw new Error(msg);
+        }
         throw new Error(p?.error?.message || p?.error || 'No fue posible eliminar el consultor.');
       }
       toast.success(`Consultor «${c.nombre}» eliminado.`);
@@ -2307,7 +2386,7 @@ const AdvisorPortal = () => {
           onClick={toggleTheme}
           aria-label={`Cambiar a tema ${theme === 'dark' ? 'claro' : 'oscuro'}`}
         >
-          {theme === 'dark' ? '☀' : '☾'}
+          {theme === 'dark' ? <IcoSun /> : <IcoMoon />}
         </button>
         <section className="advisor-login">
           <motion.div
@@ -2352,7 +2431,7 @@ const AdvisorPortal = () => {
                     aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                     tabIndex={-1}
                   >
-                    {showPassword ? '🙈' : '👁'}
+                    {showPassword ? <IcoEyeOff /> : <IcoEye />}
                   </button>
                 </div>
               </div>
@@ -2414,7 +2493,7 @@ const AdvisorPortal = () => {
               aria-label={`Cambiar a tema ${theme === 'dark' ? 'claro' : 'oscuro'}`}
               title={`Tema ${theme === 'dark' ? 'oscuro' : 'claro'}`}
             >
-              {theme === 'dark' ? '☀' : '☾'}
+              {theme === 'dark' ? <IcoSun /> : <IcoMoon />}
             </button>
             <div className="advisor-user-menu" ref={userMenuRef}>
               <button
@@ -2474,7 +2553,7 @@ const AdvisorPortal = () => {
                   aria-label="Actualizar leads"
                   title="Actualizar"
                 >
-                  <span className={refreshing ? 'icon-spin' : ''} aria-hidden>↻</span>
+                  <span className={refreshing ? 'icon-spin' : ''} aria-hidden><IcoRefresh /></span>
                   <span>Actualizar</span>
                 </button>
               </div>
@@ -2503,7 +2582,7 @@ const AdvisorPortal = () => {
             <div className="advisor-board">
               <div className="advisor-leads-toolbar">
                 <div className="advisor-search">
-                  <span className="advisor-search-icon" aria-hidden>🔍</span>
+                  <span className="advisor-search-icon" aria-hidden><IcoSearch /></span>
                   <input
                     type="search"
                     placeholder="Buscar por nombre, email, empresa o teléfono…"
@@ -2554,7 +2633,7 @@ const AdvisorPortal = () => {
                 {!loading && filteredLeads.length === 0 && (
                   <div className="advisor-empty-state">
                     <span className="advisor-empty-icon" aria-hidden>
-                      {leadsSearch ? '🔎' : '📭'}
+                      {leadsSearch ? <IcoSearch /> : <IcoInbox />}
                     </span>
                     <p className="advisor-empty-title">
                       {leadsSearch
@@ -2622,7 +2701,7 @@ const AdvisorPortal = () => {
 
                       {resolvedMeetLink && (
                         <div className="advisor-meet-row">
-                          <span className="advisor-meet-icon">📹</span>
+                          <span className="advisor-meet-icon"><IcoVideo /></span>
                           <a href={resolvedMeetLink} className="advisor-meet-link" target="_blank" rel="noreferrer">
                             Abrir Google Meet
                           </a>
@@ -2653,8 +2732,8 @@ const AdvisorPortal = () => {
 
                       <div className="advisor-lead-actions">
                         {lead.estado === 'pendiente' && (
-                          <button type="button" className="advisor-action" disabled={loadingAction} onClick={() => runLeadAction(() => handleApprove(lead.id))}>
-                            ✓ Aprobar
+                          <button type="button" className="advisor-action advisor-action-primary" disabled={loadingAction} onClick={() => runLeadAction(() => handleApprove(lead.id))}>
+                            <IcoCheck /> Aprobar
                           </button>
                         )}
                         {lead.estado !== 'rechazado' && (
@@ -2666,18 +2745,16 @@ const AdvisorPortal = () => {
                           <button type="button" className="advisor-ghost" onClick={() => toggleSchedule(lead.id)}>
                             {expandedLeadId === lead.id
                               ? 'Cancelar'
-                              : lead.estado === 'sesion_agendada'
-                                ? '📅 Reprogramar sesión'
-                                : '📅 Asignar sesión'}
+                              : <><IcoCalendar /> {lead.estado === 'sesion_agendada' ? 'Reprogramar sesión' : 'Asignar sesión'}</>}
                           </button>
                         )}
                         {lead.estado !== 'rechazado' && (
-                          <button type="button" className="advisor-action danger" disabled={loadingAction} onClick={() => { setRejectReason(''); setRejectTarget(lead); }}>
-                            ✕ Rechazar
+                          <button type="button" className="advisor-ghost" disabled={loadingAction} onClick={() => { setRejectReason(''); setRejectTarget(lead); }}>
+                            <IcoX /> Rechazar
                           </button>
                         )}
-                        <button type="button" className="advisor-action danger" disabled={loadingAction} onClick={() => setConfirmDelete(lead)}>
-                          🗑 Eliminar
+                        <button type="button" className="advisor-ghost" disabled={loadingAction} onClick={() => setConfirmDelete(lead)}>
+                          <IcoTrash /> Eliminar
                         </button>
                       </div>
 
@@ -2744,7 +2821,7 @@ const AdvisorPortal = () => {
                             <p className="advisor-schedule-error">{scheduleErrors[lead.id]}</p>
                           )}
                           <button type="button" className="advisor-action" disabled={loadingAction} onClick={() => runLeadAction(() => handleScheduleLead(lead.id))}>
-                            {loadingAction ? 'Creando evento…' : '📅 Confirmar y crear Google Meet'}
+                            {loadingAction ? 'Creando evento…' : <><IcoCalendar /> Confirmar y crear Google Meet</>}
                           </button>
                         </motion.div>
                       )}
@@ -2768,7 +2845,7 @@ const AdvisorPortal = () => {
               </div>
               <div className="advisor-header-actions">
                 <button className="advisor-icon-btn" type="button" onClick={loadManualClients} aria-label="Actualizar clientes">
-                  <span aria-hidden>↻</span>
+                  <IcoRefresh />
                   <span>Actualizar</span>
                 </button>
                 <button className="advisor-submit" type="button" onClick={() => setView('agregar_cliente')}>+ Agregar cliente</button>
@@ -2846,7 +2923,7 @@ const AdvisorPortal = () => {
             <div className="advisor-client-search-row">
               <div className="advisor-leads-toolbar">
                 <div className="advisor-search">
-                  <span className="advisor-search-icon" aria-hidden>🔍</span>
+                  <span className="advisor-search-icon" aria-hidden><IcoSearch /></span>
                   <input
                     type="search"
                     placeholder="Buscar cliente o empresa"
@@ -2930,7 +3007,7 @@ const AdvisorPortal = () => {
 
               {clientsInitiallyLoaded && filteredManualClients.length === 0 && (
                 <div className="advisor-empty-state">
-                  <span className="advisor-empty-icon" aria-hidden>{clientsSearch || clientsActiveFilters > 0 ? '🔎' : '👥'}</span>
+                  <span className="advisor-empty-icon" aria-hidden>{clientsSearch || clientsActiveFilters > 0 ? <IcoSearch /> : <IcoUsers />}</span>
                   <p className="advisor-empty-title">{clientsSearch || clientsActiveFilters > 0 ? 'Sin resultados' : 'No hay clientes registrados'}</p>
                   <p className="advisor-empty-hint">{clientsSearch || clientsActiveFilters > 0 ? 'Prueba con otro término o limpia los filtros.' : 'Agrega el primer cliente para verlo aqui.'}</p>
                 </div>
@@ -3098,7 +3175,7 @@ const AdvisorPortal = () => {
               </div>
               <div className="advisor-header-actions">
                 <button className="advisor-icon-btn" type="button" onClick={loadClientHistory} aria-label="Actualizar historico">
-                  <span aria-hidden>↻</span>
+                  <IcoRefresh />
                   <span>Actualizar</span>
                 </button>
               </div>
@@ -3164,7 +3241,7 @@ const AdvisorPortal = () => {
             <div className="advisor-client-search-row">
               <div className="advisor-leads-toolbar">
                 <div className="advisor-search">
-                  <span className="advisor-search-icon" aria-hidden>🔍</span>
+                  <span className="advisor-search-icon" aria-hidden><IcoSearch /></span>
                   <input
                     type="search"
                     placeholder="Buscar historico"
@@ -3248,7 +3325,7 @@ const AdvisorPortal = () => {
 
               {historyInitiallyLoaded && filteredClientHistory.length === 0 && (
                 <div className="advisor-empty-state">
-                  <span className="advisor-empty-icon" aria-hidden>{historySearch || historyActiveFilters > 0 ? '🔎' : '🗂'}</span>
+                  <span className="advisor-empty-icon" aria-hidden>{historySearch || historyActiveFilters > 0 ? <IcoSearch /> : <IcoFolder />}</span>
                   <p className="advisor-empty-title">{historySearch || historyActiveFilters > 0 ? 'Sin resultados' : 'No hay historico registrado'}</p>
                   <p className="advisor-empty-hint">{historySearch || historyActiveFilters > 0 ? 'Prueba con otro término o limpia los filtros.' : 'Cuando archives clientes, apareceran aqui.'}</p>
                 </div>
@@ -3372,7 +3449,7 @@ const AdvisorPortal = () => {
               </div>
               <div className="advisor-header-actions">
                 <button className="advisor-icon-btn" type="button" onClick={loadConsultores} aria-label="Actualizar consultores">
-                  <span aria-hidden>↻</span>
+                  <IcoRefresh />
                   <span>Actualizar</span>
                 </button>
                 <button className="advisor-submit" type="button" onClick={() => setView('registrar')}>+ Nuevo consultor</button>
@@ -3428,7 +3505,7 @@ const AdvisorPortal = () => {
 
               <div className="advisor-leads-toolbar">
                 <div className="advisor-search">
-                  <span className="advisor-search-icon" aria-hidden>🔍</span>
+                  <span className="advisor-search-icon" aria-hidden><IcoSearch /></span>
                   <input
                     type="search"
                     placeholder="Buscar por nombre, email o especialidad…"
@@ -3458,7 +3535,7 @@ const AdvisorPortal = () => {
 
               {consultoresInitiallyLoaded && filteredConsultores.length === 0 && (
                 <div className="advisor-empty-state">
-                  <span className="advisor-empty-icon" aria-hidden>{consultoresSearch ? '🔎' : '👥'}</span>
+                  <span className="advisor-empty-icon" aria-hidden>{consultoresSearch ? <IcoSearch /> : <IcoUsers />}</span>
                   <p className="advisor-empty-title">
                     {consultoresSearch ? 'Sin resultados' : 'No hay consultores registrados'}
                   </p>
