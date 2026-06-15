@@ -1193,26 +1193,14 @@ const AdvisorPortal = () => {
       fuente_registro: 'lead_organico',
     });
 
-    const archiveAttempts = [
-      { path: `/api/admin/leads-espera/${lead.id}/archivar`, method: 'PATCH' },
-      { path: `/api/admin/leads-espera/${lead.id}/historico`, method: 'POST' },
-      { path: `/api/admin/leads-espera/${lead.id}`, method: 'DELETE' },
-    ];
-
-    for (const attempt of archiveAttempts) {
-      const res = await fetch(getAdminUrl(attempt.path), {
-        method: attempt.method,
-        headers: authHeaders,
-        body,
-      });
-      if (res.ok) return true;
-      if (res.status !== 404 && res.status !== 405) {
-        const payload = await res.json().catch(() => null);
-        throw new Error(payload?.error?.message || payload?.error || 'No fue posible guardar el lead en historico.');
-      }
-    }
-
-    return false;
+    const res = await fetch(getAdminUrl(`/api/admin/leads-espera/${lead.id}`), {
+      method: 'DELETE',
+      headers: authHeaders,
+      body,
+    });
+    if (res.ok) return true;
+    const payload = await res.json().catch(() => null);
+    throw new Error(payload?.error?.message || payload?.error || 'No fue posible guardar el lead en historico.');
   };
 
   const handleConvertLeadToClient = async (lead: LeadRecord) => {
@@ -3960,7 +3948,7 @@ const AdvisorPortal = () => {
               <p className="ui-modal-desc">
                 Nueva contraseña para <strong>{changePasswordTarget.nombre}{changePasswordTarget.apellido ? ` ${changePasswordTarget.apellido}` : ''}</strong>.
               </p>
-              <div style={{ display: 'grid', gap: 12, marginBottom: 16 }}>
+              <form onSubmit={(e) => { e.preventDefault(); handleResetConsultorPassword(); }} style={{ display: 'grid', gap: 12, marginBottom: 16 }}>
                 <div className="advisor-field">
                   <label htmlFor="admin-reset-pwd">Nueva contraseña *</label>
                   <input
@@ -3982,7 +3970,7 @@ const AdvisorPortal = () => {
                     placeholder="Repite la contraseña"
                   />
                 </div>
-              </div>
+              </form>
               {changePasswordError && (
                 <p className="advisor-error" style={{ marginBottom: 12 }}>{changePasswordError}</p>
               )}
