@@ -74,6 +74,16 @@ const IcoTrash = () => (
     <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
   </svg>
 );
+const IcoKey = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="7.5" cy="15.5" r="5.5"/><path d="M21 2l-9.6 9.6M15.5 7.5l3 3"/>
+  </svg>
+);
+const IcoShield = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+  </svg>
+);
 const IcoUsers = () => (
   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
@@ -800,19 +810,26 @@ const AdvisorPortal = () => {
   const [selectedUploadFiles, setSelectedUploadFiles] = useState<FileList | null>(null);
   const [uploadCampo, setUploadCampo] = useState('archivos_extras');
 
-  // Change password
+  // Change password (own account)
   const [pwdCurrent, setPwdCurrent] = useState('');
   const [pwdNew, setPwdNew] = useState('');
   const [pwdConfirm, setPwdConfirm] = useState('');
   const [pwdError, setPwdError] = useState<string | null>(null);
   const [pwdSuccess, setPwdSuccess] = useState<string | null>(null);
 
+  // Admin: change consultor password / role
+  const [changePasswordTarget, setChangePasswordTarget] = useState<ConsultorProfile | null>(null);
+  const [newConsultorPassword, setNewConsultorPassword] = useState('');
+  const [newConsultorPasswordConfirm, setNewConsultorPasswordConfirm] = useState('');
+  const [changePasswordError, setChangePasswordError] = useState<string | null>(null);
+  const [confirmChangeRol, setConfirmChangeRol] = useState<ConsultorProfile | null>(null);
+
   const authHeaders = token
     ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
     : undefined;
   const authOnlyHeaders = token ? { Authorization: `Bearer ${token}` } : undefined;
   const isSuperAdmin = profile?.rol === 'super_admin';
-  const canScheduleOrganicAgendaLeads = isSuperAdmin || isAgendaRoundRobinConsultor(profile);
+  const canScheduleOrganicAgendaLeads = !!profile;
 
   // ── Loaders ────────────────────────────────────────────────
   const loadProfile = async (nextToken: string) => {
@@ -1878,6 +1895,59 @@ const AdvisorPortal = () => {
       toast.error(msg);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ── Admin: reset consultor password ───────────────────────
+  const handleResetConsultorPassword = async () => {
+    if (!authHeaders || !changePasswordTarget) return;
+    setChangePasswordError(null);
+    if (newConsultorPassword.length < 6) {
+      setChangePasswordError('La contraseña debe tener al menos 6 caracteres.');
+      return;
+    }
+    if (newConsultorPassword !== newConsultorPasswordConfirm) {
+      setChangePasswordError('Las contraseñas no coinciden.');
+      return;
+    }
+    try {
+      setLoadingAction(true);
+      const res = await fetch(getAdminUrl(`/api/admin/consultores/${changePasswordTarget.id}/reset-password`), {
+        method: 'PATCH',
+        headers: authHeaders,
+        body: JSON.stringify({ newPassword: newConsultorPassword }),
+      });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(payload?.error?.message || payload?.error || 'No fue posible cambiar la contraseña.');
+      toast.success(`Contraseña de ${changePasswordTarget.nombre} actualizada.`);
+      setChangePasswordTarget(null);
+      setNewConsultorPassword('');
+      setNewConsultorPasswordConfirm('');
+    } catch (error) {
+      setChangePasswordError(error instanceof Error ? error.message : 'Error al cambiar contraseña.');
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
+  // ── Admin: change consultor rol ────────────────────────────
+  const handleChangeConsultorRol = async (c: ConsultorProfile) => {
+    if (!authHeaders) return;
+    const newRol = c.rol === 'super_admin' ? 'consultant' : 'super_admin';
+    try {
+      const res = await fetch(getAdminUrl(`/api/admin/consultores/${c.id}/rol`), {
+        method: 'PATCH',
+        headers: authHeaders,
+        body: JSON.stringify({ rol: newRol }),
+      });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(payload?.error?.message || payload?.error || 'No fue posible cambiar el rol.');
+      toast.success(`Rol de ${c.nombre} cambiado a ${newRol === 'super_admin' ? 'Administrador' : 'Consultor'}.`);
+      setConfirmChangeRol(null);
+      await loadConsultores();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Error al cambiar el rol.');
+      setConfirmChangeRol(null);
     }
   };
 
@@ -3616,27 +3686,54 @@ const AdvisorPortal = () => {
                           {c.especialidad ? ` · ${c.especialidad}` : ''}
                         </p>
                       </div>
-                      <span className={`advisor-pill ${c.rol === 'super_admin' ? 'on' : ''}`}>
-                        {c.rol === 'super_admin' ? 'Admin' : 'Consultor'}
-                      </span>
-                      <span className={`advisor-pill ${c.activo ? 'on' : 'off'}`}>
-                        {c.activo ? 'Activo' : 'Inactivo'}
-                      </span>
-                      <button
-                        type="button"
-                        className={c.activo ? 'advisor-ghost' : 'advisor-action'}
-                        onClick={() => handleToggleActivo(c.id, !c.activo)}
-                      >
-                        {c.activo ? 'Desactivar' : 'Activar'}
-                      </button>
-                      <button
-                        type="button"
-                        className="advisor-icon-action danger"
-                        aria-label={`Eliminar a ${c.nombre}`}
-                        onClick={() => setConfirmDeleteConsultor(c)}
-                      >
-                        <IcoTrash />
-                      </button>
+                      <div className="advisor-consultor-pills">
+                        <span className={`advisor-pill ${c.rol === 'super_admin' ? 'on' : ''}`}>
+                          {c.rol === 'super_admin' ? 'Admin' : 'Consultor'}
+                        </span>
+                        <span className={`advisor-pill ${c.activo ? 'on' : 'off'}`}>
+                          {c.activo ? 'Activo' : 'Inactivo'}
+                        </span>
+                      </div>
+                      <div className="advisor-consultor-actions">
+                        <button
+                          type="button"
+                          className="advisor-icon-action"
+                          aria-label={`Cambiar contraseña de ${c.nombre}`}
+                          title="Cambiar contraseña"
+                          onClick={() => {
+                            setChangePasswordTarget(c);
+                            setNewConsultorPassword('');
+                            setNewConsultorPasswordConfirm('');
+                            setChangePasswordError(null);
+                          }}
+                        >
+                          <IcoKey />
+                        </button>
+                        <button
+                          type="button"
+                          className="advisor-icon-action"
+                          aria-label={`Cambiar rol de ${c.nombre}`}
+                          title={`Pasar a ${c.rol === 'super_admin' ? 'Consultor' : 'Administrador'}`}
+                          onClick={() => setConfirmChangeRol(c)}
+                        >
+                          <IcoShield />
+                        </button>
+                        <button
+                          type="button"
+                          className={c.activo ? 'advisor-ghost' : 'advisor-action'}
+                          onClick={() => handleToggleActivo(c.id, !c.activo)}
+                        >
+                          {c.activo ? 'Desactivar' : 'Activar'}
+                        </button>
+                        <button
+                          type="button"
+                          className="advisor-icon-action danger"
+                          aria-label={`Eliminar a ${c.nombre}`}
+                          onClick={() => setConfirmDeleteConsultor(c)}
+                        >
+                          <IcoTrash />
+                        </button>
+                      </div>
                     </motion.div>
                   ))}
                 </AnimatePresence>
@@ -3809,6 +3906,22 @@ const AdvisorPortal = () => {
       />
 
       <ConfirmDialog
+        open={!!confirmChangeRol}
+        title="Cambiar rol"
+        description={confirmChangeRol
+          ? `¿Seguro que deseas cambiar el rol de "${confirmChangeRol.nombre}" de "${confirmChangeRol.rol === 'super_admin' ? 'Administrador' : 'Consultor'}" a "${confirmChangeRol.rol === 'super_admin' ? 'Consultor' : 'Administrador'}"?`
+          : ''}
+        confirmLabel="Cambiar rol"
+        loading={loadingAction}
+        onCancel={() => setConfirmChangeRol(null)}
+        onConfirm={async () => {
+          if (!confirmChangeRol) return;
+          const target = confirmChangeRol;
+          await handleChangeConsultorRol(target);
+        }}
+      />
+
+      <ConfirmDialog
         open={!!confirmRestoreHistory}
         title="Reactivar cliente"
         description={confirmRestoreHistory ? `Seguro que deseas reactivar a "${confirmRestoreHistory.nombre || confirmRestoreHistory.email}"? Volvera a aparecer en clientes activos.` : ''}
@@ -3822,6 +3935,79 @@ const AdvisorPortal = () => {
           await performRestoreHistoryClient(target);
         }}
       />
+
+      <AnimatePresence>
+        {changePasswordTarget && (
+          <motion.div
+            className="ui-modal-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            onClick={() => { setChangePasswordTarget(null); setNewConsultorPassword(''); setNewConsultorPasswordConfirm(''); setChangePasswordError(null); }}
+          >
+            <motion.div
+              className="ui-modal"
+              role="dialog"
+              aria-modal="true"
+              initial={{ opacity: 0, y: 16, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.97 }}
+              transition={{ type: 'spring', stiffness: 360, damping: 30 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className="ui-modal-title">Cambiar contraseña</h2>
+              <p className="ui-modal-desc">
+                Nueva contraseña para <strong>{changePasswordTarget.nombre}{changePasswordTarget.apellido ? ` ${changePasswordTarget.apellido}` : ''}</strong>.
+              </p>
+              <div style={{ display: 'grid', gap: 12, marginBottom: 16 }}>
+                <div className="advisor-field">
+                  <label htmlFor="admin-reset-pwd">Nueva contraseña *</label>
+                  <input
+                    id="admin-reset-pwd"
+                    type="password"
+                    value={newConsultorPassword}
+                    onChange={(e) => setNewConsultorPassword(e.target.value)}
+                    placeholder="Mínimo 6 caracteres"
+                    autoFocus
+                  />
+                </div>
+                <div className="advisor-field">
+                  <label htmlFor="admin-reset-pwd-confirm">Confirmar contraseña *</label>
+                  <input
+                    id="admin-reset-pwd-confirm"
+                    type="password"
+                    value={newConsultorPasswordConfirm}
+                    onChange={(e) => setNewConsultorPasswordConfirm(e.target.value)}
+                    placeholder="Repite la contraseña"
+                  />
+                </div>
+              </div>
+              {changePasswordError && (
+                <p className="advisor-error" style={{ marginBottom: 12 }}>{changePasswordError}</p>
+              )}
+              <div className="ui-modal-actions">
+                <button
+                  type="button"
+                  className="ui-modal-btn ui-modal-btn-ghost"
+                  onClick={() => { setChangePasswordTarget(null); setNewConsultorPassword(''); setNewConsultorPasswordConfirm(''); setChangePasswordError(null); }}
+                  disabled={loadingAction}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="ui-modal-btn ui-modal-btn-primary"
+                  onClick={handleResetConsultorPassword}
+                  disabled={loadingAction || !newConsultorPassword || !newConsultorPasswordConfirm}
+                >
+                  {loadingAction ? 'Actualizando…' : 'Cambiar contraseña'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {rejectTarget && (

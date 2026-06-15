@@ -3529,3 +3529,102 @@
   background: var(--c-bg-surface);
   border-color: var(--c-border-subtle);
 }
+
+/* ── Consultor row: pills + actions ───────────────────────────── */
+.advisor-consultor-pills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.advisor-consultor-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* ── Responsive breakpoints ───────────────────────────────────── */
+
+/* 900px — ya existente; ampliamos con más reglas */
+@media (max-width: 900px) {
+  .advisor-client-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .advisor-board-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 720px — ya existente en el archivo; reforzamos */
+@media (max-width: 720px) {
+  .advisor-consultor-row {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .advisor-consultor-actions {
+    width: 100%;
+    margin-left: 0;
+    justify-content: flex-end;
+  }
+  .advisor-consultor-pills {
+    flex: 1;
+    justify-content: flex-end;
+  }
+}
+
+/* 640px — cartas de leads / clientes */
+@media (max-width: 640px) {
+  .advisor-client-grid {
+    grid-template-columns: 1fr;
+  }
+  .advisor-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .advisor-lead-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .advisor-lead-actions {
+    width: 100%;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+  .advisor-consultor-info {
+    min-width: 0;
+    flex: 1;
+  }
+  .advisor-consultor-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+/* 480px — columna única, stats 2-col */
+@media (max-width: 480px) {
+  .advisor-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .advisor-icon-action {
+    width: 40px;
+    height: 40px;
+  }
+  .advisor-ghost,
+  .advisor-action {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+  .advisor-consultor-actions {
+    gap: 6px;
+  }
+}
+
+/* Light mode overrides for new classes */
+:root[data-theme="light"] .advisor-consultor-pills .advisor-pill {
+  border-color: var(--c-border-subtle);
+}
+

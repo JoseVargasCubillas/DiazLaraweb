@@ -26,7 +26,8 @@
       "PowerShell(& \"C:\\\\Program Files\\\\MySQL\\\\MySQL Server 8.0\\\\bin\\\\mysql.exe\" -u root \"-pJose120502@@\" diazlara \"-e\" \"SHOW TABLES;\" 2>&1 | Where-Object { $_ -notmatch \"Warning\" })",
       "Bash(powershell -Command \"\\(Get-Content 'C:\\\\Users\\\\USER\\\\Documents\\\\GitHub\\\\DiazLaraweb\\\\src\\\\pages\\\\advisor\\\\AdvisorPortal.tsx'\\).Count\")",
       "Bash(npx vite *)",
-      "Bash(powershell *)"
+      "Bash(powershell *)",
+      "Bash(grep -v \"//\\\\|clientes-consultor\\\\|req\\\\.user\\\\|asesores\")"
     ]
   }
 }
