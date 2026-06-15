@@ -3097,3 +3097,435 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ================================================================
+   Lead card v3 — información jerárquica, acciones claras
+   ================================================================ */
+
+/* 1. Header: avatar izquierda + bloque de info derecha */
+.advisor-lead-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+}
+
+/* 2. Fila nombre + badges en el mismo nivel */
+.advisor-lead-name-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 2px;
+}
+
+/* 3. Nombre: tamaño profesional compacto */
+.advisor-lead-name {
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+/* 4. Fila de contacto: email + teléfono en línea */
+.advisor-lead-contact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 5px;
+}
+
+.advisor-contact-link {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.62);
+  text-decoration: none;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.2);
+  transition: color 0.15s ease, border-color 0.15s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 26ch;
+}
+
+.advisor-contact-link:hover {
+  color: var(--advisor-cream-200);
+  border-color: var(--advisor-cream-200);
+}
+
+/* 5. Barra de acciones: positivas izquierda | íconos peligro derecha */
+.advisor-lead-actions {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+.advisor-lead-actions-primary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  align-items: center;
+}
+
+.advisor-lead-actions-end {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* 6. Botón ícono (solo ícono, sin texto) */
+.advisor-icon-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.58);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.advisor-icon-action:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+
+.advisor-icon-action.danger {
+  border-color: rgba(248, 113, 113, 0.2);
+  background: rgba(248, 113, 113, 0.06);
+  color: rgba(248, 113, 113, 0.7);
+}
+
+.advisor-icon-action.danger:hover {
+  background: rgba(248, 113, 113, 0.16);
+  border-color: rgba(248, 113, 113, 0.36);
+  color: #fca5a5;
+}
+
+.advisor-icon-action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* 7. Nota de fecha: más compacta */
+.advisor-note {
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.38);
+  margin-top: 8px;
+  padding-top: 0;
+}
+
+/* 8. Sesión agendada: ícono SVG en lugar de emoji */
+.advisor-session-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 0.35rem;
+}
+
+/* 9. Org line: más visible */
+.advisor-lead-org {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.52);
+  margin-top: 2px;
+}
+
+/* Light mode overrides */
+:root[data-theme="light"] .advisor-contact-link {
+  color: var(--c-text-secondary);
+  border-bottom-color: var(--c-border);
+}
+
+:root[data-theme="light"] .advisor-contact-link:hover {
+  color: var(--c-text-primary);
+  border-color: var(--c-text-primary);
+}
+
+:root[data-theme="light"] .advisor-lead-actions {
+  border-top-color: var(--c-border-subtle);
+}
+
+:root[data-theme="light"] .advisor-icon-action {
+  border-color: var(--c-border);
+  background: var(--c-bg-muted);
+  color: var(--c-text-secondary);
+}
+
+:root[data-theme="light"] .advisor-icon-action:hover {
+  background: var(--c-border);
+  color: var(--c-text-primary);
+}
+
+:root[data-theme="light"] .advisor-icon-action.danger {
+  border-color: rgba(185, 28, 28, 0.18);
+  background: rgba(185, 28, 28, 0.05);
+  color: var(--c-danger);
+}
+
+:root[data-theme="light"] .advisor-icon-action.danger:hover {
+  background: rgba(185, 28, 28, 0.12);
+}
+
+:root[data-theme="light"] .advisor-note {
+  color: var(--c-text-muted);
+  opacity: 0.7;
+}
+
+:root[data-theme="light"] .advisor-lead-org {
+  color: var(--c-text-secondary);
+}
+
+/* Mobile: mantener avatar + info en fila, no apilar */
+@media (max-width: 720px) {
+  .advisor-lead-top {
+    flex-direction: row;
+    gap: 12px;
+    flex-wrap: nowrap;
+  }
+
+  .advisor-lead-name-row {
+    flex-direction: column;
+    gap: 5px;
+    align-items: flex-start;
+  }
+
+  .advisor-lead-actions {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .advisor-lead-actions-primary {
+    flex: 1 1 100%;
+    order: 1;
+  }
+
+  .advisor-lead-actions-end {
+    order: 2;
+    margin-left: auto;
+  }
+
+  .advisor-contact-link {
+    max-width: 22ch;
+  }
+}
+
+/* ================================================================
+   Scheduling panel v2 — fecha + hora separados, diseño claro
+   ================================================================ */
+
+.advisor-schedule-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.advisor-schedule-sub {
+  font-size: 12px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.52);
+  margin-left: 4px;
+}
+
+.advisor-schedule-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 560px) {
+  .advisor-schedule-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.advisor-schedule-preview {
+  margin: 8px 0 14px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(201, 166, 97, 0.1);
+  border: 1px solid rgba(201, 166, 97, 0.22);
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 13px;
+  font-weight: 500;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+}
+
+.advisor-schedule-confirm {
+  width: 100%;
+  justify-content: center;
+}
+
+.advisor-schedule-confirm:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Light mode — scheduling */
+:root[data-theme="light"] .advisor-schedule-header {
+  color: var(--c-text-primary);
+}
+:root[data-theme="light"] .advisor-schedule-sub {
+  color: var(--c-text-muted);
+}
+:root[data-theme="light"] .advisor-schedule-preview {
+  background: var(--c-accent-soft);
+  border-color: rgba(160, 123, 53, 0.25);
+  color: var(--c-accent);
+}
+
+/* ================================================================
+   Light mode — overrides completos de contraste
+   ================================================================ */
+
+/* Consultor rows */
+:root[data-theme="light"] .advisor-consultor-row {
+  background: var(--c-bg-surface);
+  border-color: var(--c-border-subtle);
+  box-shadow: var(--c-shadow-sm);
+}
+:root[data-theme="light"] .advisor-consultor-name {
+  color: var(--c-text-primary);
+}
+:root[data-theme="light"] .advisor-consultor-meta {
+  color: var(--c-text-secondary);
+}
+
+/* Pills */
+:root[data-theme="light"] .advisor-pill.on {
+  background: rgba(4, 120, 87, 0.1);
+  border-color: rgba(4, 120, 87, 0.22);
+  color: #065f46;
+}
+:root[data-theme="light"] .advisor-pill.off {
+  background: var(--c-bg-muted);
+  border-color: var(--c-border);
+  color: var(--c-text-muted);
+}
+
+/* Badge rechazado en light */
+:root[data-theme="light"] .badge-rechazado {
+  background: rgba(185, 28, 28, 0.08);
+  border-color: rgba(185, 28, 28, 0.2);
+  color: #991b1b;
+}
+
+/* Session info en light mode */
+:root[data-theme="light"] .advisor-session-title {
+  color: #1d4ed8;
+}
+:root[data-theme="light"] .advisor-session-date {
+  color: var(--c-text-primary);
+}
+:root[data-theme="light"] .advisor-session-meta {
+  color: var(--c-text-secondary);
+  opacity: 1;
+}
+
+/* Schedule title en light mode */
+:root[data-theme="light"] .advisor-schedule-title {
+  color: var(--c-text-secondary);
+}
+
+/* Lead card — acento izquierdo en light mode */
+:root[data-theme="light"] .advisor-lead-card::before {
+  background: linear-gradient(180deg, var(--c-accent), rgba(160, 123, 53, 0.15));
+  opacity: 0.8;
+}
+
+/* Action primary en light */
+:root[data-theme="light"] .advisor-action-primary {
+  background: rgba(4, 120, 87, 0.12);
+  color: #047857;
+  border-color: rgba(4, 120, 87, 0.28) !important;
+}
+:root[data-theme="light"] .advisor-action-primary:hover {
+  background: rgba(4, 120, 87, 0.2);
+}
+
+/* Leads toolbar / search */
+:root[data-theme="light"] .advisor-leads-toolbar {
+  background: var(--c-bg-surface);
+  border-color: var(--c-border-subtle);
+  box-shadow: var(--c-shadow-sm);
+}
+:root[data-theme="light"] .advisor-search-icon {
+  color: var(--c-text-muted);
+}
+:root[data-theme="light"] .advisor-search input {
+  color: var(--c-text-primary);
+}
+:root[data-theme="light"] .advisor-search input::placeholder {
+  color: var(--c-text-muted);
+}
+
+/* Icon action en light */
+:root[data-theme="light"] .advisor-icon-action {
+  border-color: var(--c-border);
+  background: var(--c-bg-muted);
+  color: var(--c-text-secondary);
+}
+:root[data-theme="light"] .advisor-icon-action:hover {
+  background: var(--c-border-subtle);
+  color: var(--c-text-primary);
+}
+:root[data-theme="light"] .advisor-icon-action.danger {
+  border-color: rgba(185, 28, 28, 0.2);
+  background: rgba(185, 28, 28, 0.05);
+  color: var(--c-danger);
+}
+:root[data-theme="light"] .advisor-icon-action.danger:hover {
+  background: rgba(185, 28, 28, 0.12);
+}
+
+/* Meet row en light */
+:root[data-theme="light"] .advisor-meet-row {
+  background: rgba(4, 120, 87, 0.07);
+  border-color: rgba(4, 120, 87, 0.18);
+}
+
+/* General: lead card title color */
+:root[data-theme="light"] .advisor-lead-name {
+  color: var(--c-text-primary);
+}
+:root[data-theme="light"] .advisor-lead-org {
+  color: var(--c-text-secondary);
+}
+:root[data-theme="light"] .advisor-note {
+  color: var(--c-text-muted);
+  opacity: 0.8;
+}
+
+/* Schedule confirm button en light */
+:root[data-theme="light"] .advisor-schedule-confirm {
+  background: var(--c-accent);
+  color: #fff;
+}
+:root[data-theme="light"] .advisor-schedule-confirm:hover {
+  background: var(--c-accent-hover);
+}
+
+/* Consultor board en light */
+:root[data-theme="light"] .advisor-board {
+  background: var(--c-bg-surface);
+  border-color: var(--c-border-subtle);
+}

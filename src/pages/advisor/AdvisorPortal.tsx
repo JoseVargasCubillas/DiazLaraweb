@@ -86,6 +86,11 @@ const IcoFolder = () => (
 );
 // ─────────────────────────────────────────────────────────────
 
+const TIME_SLOTS = Array.from({ length: 29 }, (_, i) => {
+  const m = 7 * 60 + i * 30;
+  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+});
+
 const API_BASE_URL = (import.meta.env.VITE_API_URL as string | undefined)?.trim() || 'http://localhost:3000';
 const IS_LOCAL_API = /^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(API_BASE_URL);
 const IS_PRODUCTION_HOST = typeof window !== 'undefined'
@@ -2652,6 +2657,9 @@ const AdvisorPortal = () => {
                 {filteredLeads.map((lead, idx) => {
                   const services = parseServicios(lead.servicios);
                   const scheduleDraft = scheduleDrafts[lead.id] || defaultScheduleDraft();
+                  const schDate = scheduleDraft.fecha_hora_inicio.slice(0, 10);
+                  const schTime = scheduleDraft.fecha_hora_inicio.length > 10 ? scheduleDraft.fecha_hora_inicio.slice(11, 16) : '';
+                  const todayStr = new Date().toISOString().slice(0, 10);
                   const resolvedMeetLink = meetLinks[lead.id] || lead.cita_meet_link || lead.meet_link;
 
                   return (
@@ -2665,33 +2673,30 @@ const AdvisorPortal = () => {
                       className="advisor-lead-card"
                     >
                       <div className="advisor-lead-top">
+                        <span className="advisor-avatar">{getInitials(lead.nombre)}</span>
                         <div className="advisor-lead-info">
-                          <h2 className="advisor-lead-name">
-                            <span className="advisor-avatar">{getInitials(lead.nombre)}</span>
-                            <span>{lead.nombre}</span>
-                          </h2>
-                          <p className="advisor-lead-email">
-                            <a href={`mailto:${lead.email}`}>{lead.email}</a>
-                          </p>
-                          {lead.telefono_whatsapp && (
-                            <p className="advisor-lead-phone">
-                              <a href={`https://wa.me/${lead.telefono_whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer">
+                          <div className="advisor-lead-name-row">
+                            <h2 className="advisor-lead-name">{lead.nombre}</h2>
+                            <div className="advisor-badges">
+                              <span className="advisor-badge">{ESTADO_LABELS[lead.estado]}</span>
+                              <span className={`advisor-badge ${ESTATUS_COLORS[lead.estatus_comercial]}`}>
+                                {lead.estatus_comercial}
+                              </span>
+                            </div>
+                          </div>
+                          {(lead.empresa || lead.puesto) && (
+                            <p className="advisor-lead-org">{[lead.empresa, lead.puesto].filter(Boolean).join(' · ')}</p>
+                          )}
+                          <div className="advisor-lead-contact">
+                            <a href={`mailto:${lead.email}`} className="advisor-contact-link">{lead.email}</a>
+                            {lead.telefono_whatsapp && (
+                              <a href={`https://wa.me/${lead.telefono_whatsapp.replace(/\D/g, '')}`} className="advisor-contact-link" target="_blank" rel="noreferrer">
                                 {lead.telefono_whatsapp}
                               </a>
-                            </p>
-                          )}
-                        </div>
-                        <div className="advisor-badges">
-                          <span className="advisor-badge">{ESTADO_LABELS[lead.estado]}</span>
-                          <span className={`advisor-badge ${ESTATUS_COLORS[lead.estatus_comercial]}`}>
-                            {lead.estatus_comercial}
-                          </span>
+                            )}
+                          </div>
                         </div>
                       </div>
-
-                      {(lead.empresa || lead.puesto) && (
-                        <p className="advisor-lead-org">{[lead.empresa, lead.puesto].filter(Boolean).join(' · ')}</p>
-                      )}
 
                       {services.length > 0 && (
                         <div className="advisor-services">
@@ -2713,7 +2718,7 @@ const AdvisorPortal = () => {
 
                       {lead.estado === 'sesion_agendada' && lead.cita_fecha_hora_inicio && (
                         <div className="advisor-session-info">
-                          <p className="advisor-session-title">🗓 Sesión agendada</p>
+                          <p className="advisor-session-title"><IcoCalendar /> Sesión agendada</p>
                           <p className="advisor-session-date">{formatSessionDate(lead.cita_fecha_hora_inicio)}</p>
                           {lead.consultor_nombre && (
                             <p className="advisor-session-meta">
@@ -2731,31 +2736,40 @@ const AdvisorPortal = () => {
                       </p>
 
                       <div className="advisor-lead-actions">
-                        {lead.estado === 'pendiente' && (
-                          <button type="button" className="advisor-action advisor-action-primary" disabled={loadingAction} onClick={() => runLeadAction(() => handleApprove(lead.id))}>
-                            <IcoCheck /> Aprobar
+                        <div className="advisor-lead-actions-primary">
+                          {lead.estado === 'pendiente' && (
+                            <button type="button" className="advisor-action advisor-action-primary" disabled={loadingAction} onClick={() => runLeadAction(() => handleApprove(lead.id))}>
+                              <IcoCheck /> Aprobar
+                            </button>
+                          )}
+                          {lead.estado !== 'rechazado' && (
+                            <button
+                              type="button"
+                              className={lead.estado === 'pendiente' ? 'advisor-ghost' : 'advisor-action advisor-action-primary'}
+                              disabled={loadingAction}
+                              onClick={() => setConfirmConvertLead(lead)}
+                            >
+                              Pasar a cliente
+                            </button>
+                          )}
+                          {lead.estado !== 'rechazado' && canScheduleOrganicAgendaLeads && (
+                            <button type="button" className="advisor-ghost" onClick={() => toggleSchedule(lead.id)}>
+                              {expandedLeadId === lead.id
+                                ? 'Cancelar'
+                                : <><IcoCalendar /> {lead.estado === 'sesion_agendada' ? 'Reprogramar' : 'Agendar'}</>}
+                            </button>
+                          )}
+                        </div>
+                        <div className="advisor-lead-actions-end">
+                          {lead.estado !== 'rechazado' && (
+                            <button type="button" className="advisor-icon-action" aria-label="Rechazar lead" disabled={loadingAction} onClick={() => { setRejectReason(''); setRejectTarget(lead); }}>
+                              <IcoX />
+                            </button>
+                          )}
+                          <button type="button" className="advisor-icon-action danger" aria-label="Eliminar lead" disabled={loadingAction} onClick={() => setConfirmDelete(lead)}>
+                            <IcoTrash />
                           </button>
-                        )}
-                        {lead.estado !== 'rechazado' && (
-                          <button type="button" className="advisor-action" disabled={loadingAction} onClick={() => setConfirmConvertLead(lead)}>
-                            Pasar a cliente
-                          </button>
-                        )}
-                        {lead.estado !== 'rechazado' && canScheduleOrganicAgendaLeads && (
-                          <button type="button" className="advisor-ghost" onClick={() => toggleSchedule(lead.id)}>
-                            {expandedLeadId === lead.id
-                              ? 'Cancelar'
-                              : <><IcoCalendar /> {lead.estado === 'sesion_agendada' ? 'Reprogramar sesión' : 'Asignar sesión'}</>}
-                          </button>
-                        )}
-                        {lead.estado !== 'rechazado' && (
-                          <button type="button" className="advisor-ghost" disabled={loadingAction} onClick={() => { setRejectReason(''); setRejectTarget(lead); }}>
-                            <IcoX /> Rechazar
-                          </button>
-                        )}
-                        <button type="button" className="advisor-ghost" disabled={loadingAction} onClick={() => setConfirmDelete(lead)}>
-                          <IcoTrash /> Eliminar
-                        </button>
+                        </div>
                       </div>
 
                       <AnimatePresence initial={false}>
@@ -2769,17 +2783,44 @@ const AdvisorPortal = () => {
                           transition={{ duration: 0.22, ease: 'easeOut' }}
                           style={{ overflow: 'hidden' }}
                         >
-                          <p className="advisor-schedule-title">Agendar sesión — se creará evento en Google Calendar y se enviará invitación por correo</p>
-                          <div className="advisor-schedule-row">
+                          <div className="advisor-schedule-header">
+                            <IcoCalendar />
+                            <span>Agendar sesión</span>
+                            <span className="advisor-schedule-sub">Se creará un evento en Google Calendar y se enviará invitación al correo del lead.</span>
+                          </div>
+
+                          <div className="advisor-schedule-grid">
                             <div className="advisor-field">
-                              <label htmlFor={`schedule-${lead.id}`}>Fecha y hora</label>
+                              <label htmlFor={`sch-date-${lead.id}`}>Fecha</label>
                               <input
-                                id={`schedule-${lead.id}`}
-                                type="datetime-local"
-                                value={scheduleDraft.fecha_hora_inicio}
-                                onChange={(e) => updateScheduleDraft(lead.id, { fecha_hora_inicio: e.target.value })}
+                                id={`sch-date-${lead.id}`}
+                                type="date"
+                                min={todayStr}
+                                value={schDate}
+                                onChange={(e) => updateScheduleDraft(lead.id, {
+                                  fecha_hora_inicio: e.target.value
+                                    ? `${e.target.value}T${schTime || '09:00'}`
+                                    : '',
+                                })}
                               />
                             </div>
+
+                            <div className="advisor-field">
+                              <label htmlFor={`sch-time-${lead.id}`}>Hora</label>
+                              <select
+                                id={`sch-time-${lead.id}`}
+                                value={schTime}
+                                onChange={(e) => updateScheduleDraft(lead.id, {
+                                  fecha_hora_inicio: schDate
+                                    ? `${schDate}T${e.target.value}`
+                                    : '',
+                                })}
+                              >
+                                <option value="">Selecciona hora…</option>
+                                {TIME_SLOTS.map((t) => <option key={t} value={t}>{t}</option>)}
+                              </select>
+                            </div>
+
                             <div className="advisor-field">
                               <label htmlFor={`dur-${lead.id}`}>Duración</label>
                               <select
@@ -2787,13 +2828,14 @@ const AdvisorPortal = () => {
                                 value={scheduleDraft.duracion}
                                 onChange={(e) => updateScheduleDraft(lead.id, { duracion: Number(e.target.value) })}
                               >
-                                <option value={15}>15 min</option>
                                 <option value={30}>30 min</option>
                                 <option value={45}>45 min</option>
                                 <option value={60}>1 hora</option>
-                                <option value={90}>1.5 horas</option>
+                                <option value={90}>1 h 30 min</option>
+                                <option value={120}>2 horas</option>
                               </select>
                             </div>
+
                             <div className="advisor-field">
                               <label htmlFor={`status-${lead.id}`}>Estatus comercial</label>
                               <select
@@ -2807,20 +2849,29 @@ const AdvisorPortal = () => {
                               </select>
                             </div>
                           </div>
+
                           <div className="advisor-field">
-                            <label htmlFor={`notes-${lead.id}`}>Notas internas</label>
+                            <label htmlFor={`notes-${lead.id}`}>Notas internas (opcional)</label>
                             <input
                               id={`notes-${lead.id}`}
                               type="text"
                               value={scheduleDraft.notas_cliente}
                               onChange={(e) => updateScheduleDraft(lead.id, { notas_cliente: e.target.value })}
-                              placeholder="Observaciones sobre el cliente o la sesión"
+                              placeholder="Observaciones para el equipo"
                             />
                           </div>
+
                           {scheduleErrors[lead.id] && (
                             <p className="advisor-schedule-error">{scheduleErrors[lead.id]}</p>
                           )}
-                          <button type="button" className="advisor-action" disabled={loadingAction} onClick={() => runLeadAction(() => handleScheduleLead(lead.id))}>
+
+                          <div className="advisor-schedule-preview">
+                            {schDate && schTime
+                              ? `📅 ${new Date(`${schDate}T${schTime}`).toLocaleString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`
+                              : 'Selecciona fecha y hora para ver el resumen'}
+                          </div>
+
+                          <button type="button" className="advisor-action advisor-schedule-confirm" disabled={loadingAction || !schDate || !schTime} onClick={() => runLeadAction(() => handleScheduleLead(lead.id))}>
                             {loadingAction ? 'Creando evento…' : <><IcoCalendar /> Confirmar y crear Google Meet</>}
                           </button>
                         </motion.div>
@@ -3580,10 +3631,11 @@ const AdvisorPortal = () => {
                       </button>
                       <button
                         type="button"
-                        className="advisor-action danger"
+                        className="advisor-icon-action danger"
+                        aria-label={`Eliminar a ${c.nombre}`}
                         onClick={() => setConfirmDeleteConsultor(c)}
                       >
-                        Eliminar
+                        <IcoTrash />
                       </button>
                     </motion.div>
                   ))}
