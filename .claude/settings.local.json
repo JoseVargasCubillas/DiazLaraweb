@@ -17,7 +17,8 @@
       "PowerShell(& \"C:\\\\Program Files\\\\MySQL\\\\MySQL Server 8.0\\\\bin\\\\mysql.exe\" -u root -p\"Jose120502@@\" diazlara -e \"SELECT id, nombre, email, rol, activo FROM CONSULTORES;\" 2>&1)",
       "PowerShell(& \"C:\\\\Program Files\\\\MySQL\\\\MySQL Server 8.0\\\\bin\\\\mysql.exe\" -u root -p\"Jose120502@@\" diazlara -e \"SELECT nombre, email, password_hash FROM CONSULTORES;\" 2>&1)",
       "PowerShell(& \"C:\\\\Program Files\\\\MySQL\\\\MySQL Server 8.0\\\\bin\\\\mysql.exe\" -u root -p\"Jose120502@@\" diazlara -e \"UPDATE CONSULTORES SET password_hash = '\\\\$2b\\\\$12\\\\$Ei5vly5wGgHZx1Zfp6Fv/e5ZXhopO4n3W/jc4.UEUXEO/Rqw3mXci' WHERE email = 'contacto@diazlara.mx';\" 2>&1)",
-      "PowerShell(& \"C:\\\\Program Files\\\\MySQL\\\\MySQL Server 8.0\\\\bin\\\\mysql.exe\" -u root -p\"Jose120502@@\" diazlara -e \"SELECT email, password_hash, activo FROM CONSULTORES WHERE email = 'contacto@diazlara.mx';\" 2>&1)"
+      "PowerShell(& \"C:\\\\Program Files\\\\MySQL\\\\MySQL Server 8.0\\\\bin\\\\mysql.exe\" -u root -p\"Jose120502@@\" diazlara -e \"SELECT email, password_hash, activo FROM CONSULTORES WHERE email = 'contacto@diazlara.mx';\" 2>&1)",
+      "Bash(npm install *)"
     ]
   }
 }
