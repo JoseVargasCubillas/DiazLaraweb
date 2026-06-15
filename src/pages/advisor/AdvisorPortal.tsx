@@ -381,7 +381,7 @@ type ScheduleDraft = {
 
 const defaultScheduleDraft = (): ScheduleDraft => ({
   fecha_hora_inicio: '',
-  duracion: 30,
+  duracion: 15,
   estatus_comercial: 'prospecto',
   notas_cliente: '',
 });
@@ -2880,18 +2880,8 @@ const AdvisorPortal = () => {
                             </div>
 
                             <div className="advisor-field">
-                              <label htmlFor={`dur-${lead.id}`}>Duración</label>
-                              <select
-                                id={`dur-${lead.id}`}
-                                value={scheduleDraft.duracion}
-                                onChange={(e) => updateScheduleDraft(lead.id, { duracion: Number(e.target.value) })}
-                              >
-                                <option value={30}>30 min</option>
-                                <option value={45}>45 min</option>
-                                <option value={60}>1 hora</option>
-                                <option value={90}>1 h 30 min</option>
-                                <option value={120}>2 horas</option>
-                              </select>
+                              <label>Duración</label>
+                              <p style={{ margin: 0, paddingTop: 6, fontSize: 14, color: 'var(--c-text-secondary)' }}>15 min</p>
                             </div>
 
                             <div className="advisor-field">
