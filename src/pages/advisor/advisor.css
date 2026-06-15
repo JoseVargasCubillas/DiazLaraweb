@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 :root {
   --advisor-navy-900: #091a33;
   --advisor-navy-800: #0e2444;
@@ -15,7 +17,7 @@
     radial-gradient(circle at 90% 90%, rgba(19, 48, 90, 0.25), transparent 40%),
     linear-gradient(150deg, var(--advisor-navy-900) 0%, var(--advisor-navy-800) 45%, var(--advisor-navy-700) 100%);
   color: #ffffff;
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 .advisor-login,
@@ -99,7 +101,7 @@
   color: #ffffff;
   border-radius: 12px;
   padding: 14px 16px;
-  font: 400 15px/1.2 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font: 400 15px/1.2 'Inter', system-ui, -apple-system, sans-serif;
   outline: none;
   transition: border-color 0.2s ease, background 0.2s ease;
 }
@@ -150,7 +152,7 @@
   border-radius: 10px;
   padding: 13px 18px;
   cursor: pointer;
-  font: 500 14px/1.2 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font: 500 14px/1.2 'Inter', system-ui, -apple-system, sans-serif;
   letter-spacing: 0.02em;
   transition: transform 120ms ease, opacity 120ms ease, background 120ms ease;
 }
@@ -184,7 +186,7 @@
 .advisor-error {
   margin-top: 14px;
   color: #ffd5d5;
-  font: 500 13px/1.5 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font: 500 13px/1.5 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 .advisor-panel {
@@ -274,7 +276,7 @@
   padding: 10px 14px;
   border-radius: 999px;
   cursor: pointer;
-  font: 600 12px/1 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font: 600 12px/1 'Inter', system-ui, -apple-system, sans-serif;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -347,7 +349,7 @@
 .advisor-note,
 .advisor-badge,
 .advisor-service {
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 .advisor-lead-meta {
@@ -380,7 +382,7 @@
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: rgba(255, 255, 255, 0.86);
-  font: 500 12px/1.2 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font: 500 12px/1.2 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 .advisor-lead-actions {
@@ -406,7 +408,7 @@
 
 .advisor-note {
   margin-top: 14px;
-  font: 400 14px/1.6 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font: 400 14px/1.6 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 /* ── Top Navigation ────────────────────────────────── */
@@ -488,7 +490,7 @@
   border: none;
   padding: 8px 14px;
   border-radius: 8px;
-  font: 500 13px/1 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font: 500 13px/1 'Inter', system-ui, -apple-system, sans-serif;
   color: rgba(255, 255, 255, 0.65);
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
@@ -538,7 +540,7 @@
 
 .advisor-meet-link {
   flex: 1;
-  font: 500 13px/1.4 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font: 500 13px/1.4 'Inter', system-ui, -apple-system, sans-serif;
   color: #7ef7aa;
   text-decoration: none;
   word-break: break-all;
@@ -553,7 +555,7 @@
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 8px;
   padding: 6px 10px;
-  font: 500 12px/1 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font: 500 12px/1 'Inter', system-ui, -apple-system, sans-serif;
   color: rgba(255, 255, 255, 0.8);
   cursor: pointer;
   white-space: nowrap;
@@ -622,7 +624,7 @@
 .advisor-success {
   margin-top: 14px;
   color: #7ef7aa;
-  font: 500 13px/1.5 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font: 500 13px/1.5 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 /* ── Register form layout ───────────────────────────── */
@@ -1137,7 +1139,7 @@
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.04);
   color: rgba(245, 247, 251, 0.92);
-  font: 700 13px/1.2 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font: 700 13px/1.2 'Inter', system-ui, -apple-system, sans-serif;
   letter-spacing: 0;
   text-transform: none;
 }
@@ -1397,7 +1399,7 @@
   gap: 8px;
   margin: 0;
   color: rgba(169, 187, 213, 0.84);
-  font: 500 13px/1.4 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font: 500 13px/1.4 'Inter', system-ui, -apple-system, sans-serif;
   overflow-wrap: anywhere;
 }
 
@@ -1448,7 +1450,7 @@
   background: rgba(9, 26, 51, 0.55);
   color: #f5f7fb;
   padding: 8px 10px;
-  font: 700 12px/1.2 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font: 700 12px/1.2 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 .advisor-client-status-pill {
@@ -1544,7 +1546,7 @@
   color: #a7f7fa;
   cursor: pointer;
   padding: 8px 11px;
-  font: 700 12px/1 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font: 700 12px/1 'Inter', system-ui, -apple-system, sans-serif;
   white-space: nowrap;
 }
 
@@ -1558,7 +1560,7 @@
   grid-template-columns: 92px minmax(0, 1fr);
   gap: 10px;
   margin: 0;
-  font: 400 13px/1.45 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font: 400 13px/1.45 'Inter', system-ui, -apple-system, sans-serif;
   color: rgba(255, 255, 255, 0.78);
 }
 
@@ -1649,7 +1651,7 @@
 .advisor-client-detail-block strong,
 .advisor-client-detail-block a {
   color: #f5f7fb;
-  font: 600 14px/1.45 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font: 600 14px/1.45 'Inter', system-ui, -apple-system, sans-serif;
   overflow-wrap: anywhere;
 }
 
@@ -1683,12 +1685,12 @@
 .advisor-client-note {
   margin: 8px 0 0;
   color: rgba(255, 255, 255, 0.62);
-  font: 400 12px/1.5 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font: 400 12px/1.5 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 .advisor-client-date {
   color: rgba(255, 255, 255, 0.54);
-  font: 500 12px/1.4 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font: 500 12px/1.4 'Inter', system-ui, -apple-system, sans-serif;
   white-space: nowrap;
 }
 
@@ -2095,7 +2097,7 @@
   color: var(--c-text-primary);
   border: 1px solid var(--c-border);
   box-shadow: var(--c-shadow-lg);
-  font: 500 13px/1.45 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font: 500 13px/1.45 'Inter', system-ui, -apple-system, sans-serif;
 }
 .ui-toast-icon {
   width: 24px; height: 24px; border-radius: 50%;
@@ -2144,7 +2146,7 @@
 .ui-modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .ui-modal-btn {
   padding: 10px 16px; border-radius: 10px;
-  font: 500 13px/1 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font: 500 13px/1 'Inter', system-ui, -apple-system, sans-serif;
   cursor: pointer; border: 1px solid transparent;
   transition: background 0.15s ease, transform 0.1s ease;
 }
@@ -2196,7 +2198,7 @@
   border: 1px solid var(--c-border);
   background: rgba(255,255,255,0.04);
   color: inherit;
-  font: 400 14px/1.2 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font: 400 14px/1.2 'Inter', system-ui, -apple-system, sans-serif;
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
@@ -2214,7 +2216,7 @@
   padding: 10px 14px; border-radius: 10px;
   background: var(--c-bg-muted); color: var(--c-text-primary);
   border: 1px solid var(--c-border);
-  font: 500 13px/1 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font: 500 13px/1 'Inter', system-ui, -apple-system, sans-serif;
   cursor: pointer;
   transition: background 0.15s ease, transform 0.1s ease;
 }
@@ -2361,7 +2363,7 @@
   text-align: left;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   transition: background 0.15s ease;
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 .diag-section-head:hover {
@@ -2434,7 +2436,7 @@
   color: rgba(255, 255, 255, 0.72);
   transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
   user-select: none;
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 .diag-checkbox-item:hover {
@@ -2542,7 +2544,7 @@
   color: var(--c-text-secondary);
   cursor: pointer;
   padding: 7px 10px;
-  font: 500 12px/1 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font: 500 12px/1 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 .advisor-service-picker button:hover {
@@ -2823,5 +2825,275 @@
     right: auto;
     left: 0;
     min-width: 220px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   UI/UX ENHANCEMENTS — Design polish layer
+   Keeps all existing tokens; improves readability,
+   hierarchy, spacing, transitions and interactions.
+   ═══════════════════════════════════════════════════ */
+
+/* ── Global font refinement ── */
+.advisor-shell {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.01em;
+}
+
+/* ── Custom scrollbar ── */
+.advisor-shell ::-webkit-scrollbar { width: 6px; height: 6px; }
+.advisor-shell ::-webkit-scrollbar-track { background: transparent; }
+.advisor-shell ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+}
+.advisor-shell ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.28); }
+:root[data-theme="light"] .advisor-shell ::-webkit-scrollbar-thumb { background: rgba(14, 31, 54, 0.18); }
+:root[data-theme="light"] .advisor-shell ::-webkit-scrollbar-thumb:hover { background: rgba(14, 31, 54, 0.3); }
+
+/* ── Login page improvements ── */
+.advisor-login-card {
+  box-shadow: 0 32px 80px rgba(5, 12, 25, 0.5), 0 0 0 1px rgba(239, 232, 224, 0.06);
+}
+.advisor-login-card .advisor-title {
+  font-size: clamp(22px, 4vw, 30px);
+  font-weight: 700;
+}
+.advisor-login-card .advisor-copy {
+  font-size: 14px;
+  line-height: 1.65;
+  opacity: 0.82;
+}
+
+/* ── Button hierarchy refinements ── */
+.advisor-submit,
+.advisor-action {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18), 0 1px 2px rgba(0, 0, 0, 0.12);
+  transition: transform 150ms ease, opacity 150ms ease, background 150ms ease, box-shadow 150ms ease;
+}
+.advisor-submit:hover,
+.advisor-action:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22), 0 2px 6px rgba(0, 0, 0, 0.14);
+}
+.advisor-ghost {
+  font-weight: 500;
+  transition: transform 150ms ease, background 150ms ease, border-color 150ms ease;
+}
+.advisor-ghost:hover {
+  background: rgba(255, 255, 255, 0.13);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+.advisor-action-primary {
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(52, 211, 153, 0.2);
+}
+.advisor-action-primary:hover {
+  box-shadow: 0 4px 12px rgba(52, 211, 153, 0.3);
+}
+
+/* ── Input field polish ── */
+.advisor-field input,
+.advisor-field select,
+.advisor-field textarea,
+.advisor-schedule input,
+.advisor-schedule select {
+  letter-spacing: 0;
+  font-size: 14px;
+  transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+}
+.advisor-field input:focus,
+.advisor-field select:focus,
+.advisor-field textarea:focus,
+.advisor-schedule input:focus,
+.advisor-schedule select:focus {
+  box-shadow: 0 0 0 3px rgba(239, 232, 224, 0.12);
+}
+
+/* ── Nav tab active indicator ── */
+.advisor-nav-tab {
+  position: relative;
+  font-weight: 500;
+  transition: background 150ms ease, color 150ms ease;
+}
+.advisor-nav-tab.active {
+  font-weight: 600;
+}
+.advisor-nav-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--advisor-cream-200);
+}
+
+/* ── Stat card active ring ── */
+.advisor-stat.is-active {
+  box-shadow: 0 0 0 2px var(--c-accent), var(--c-shadow-md);
+}
+
+/* ── Lead card improvements ── */
+.advisor-lead-card {
+  transition: transform 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+}
+.advisor-lead-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 32px 80px rgba(5, 12, 25, 0.5);
+}
+.advisor-lead-name {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* ── Consultor row hover ── */
+.advisor-consultor-row {
+  transition: background 150ms ease, border-color 150ms ease;
+  cursor: default;
+}
+.advisor-consultor-row:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(239, 232, 224, 0.2);
+}
+
+/* ── Section headers ── */
+.advisor-title {
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+.advisor-kicker {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  font-weight: 600;
+}
+
+/* ── Board padding refinement ── */
+.advisor-board {
+  padding: 28px;
+}
+
+/* ── Icon button refinement ── */
+.advisor-icon-btn {
+  font-weight: 500;
+  transition: background 150ms ease, transform 150ms ease;
+}
+.advisor-icon-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+/* ── Badge spacing ── */
+.advisor-badge {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+}
+
+/* ── Service tag ── */
+.advisor-service {
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* ── Empty state icon glow ── */
+.advisor-empty-icon {
+  box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.03), 0 0 0 12px rgba(255, 255, 255, 0.015);
+}
+:root[data-theme="light"] .advisor-empty-icon {
+  box-shadow: 0 0 0 6px rgba(14, 31, 54, 0.04), 0 0 0 12px rgba(14, 31, 54, 0.02);
+}
+.advisor-empty-title {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* ── Search input refinement ── */
+.advisor-search input {
+  font-size: 14px;
+  font-weight: 400;
+}
+.advisor-search input:focus {
+  box-shadow: 0 0 0 3px var(--c-accent-soft);
+}
+
+/* ── Meet row ── */
+.advisor-meet-link {
+  font-weight: 500;
+  font-size: 13px;
+}
+
+/* ── Note ── */
+.advisor-note {
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+/* ── Pill ── */
+.advisor-pill {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+/* ── Filter chip refinement ── */
+.advisor-filter {
+  font-size: 11px;
+  transition: background 150ms ease, color 150px ease, border-color 150ms ease;
+}
+.advisor-filter:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+/* ── Section copy ── */
+.advisor-copy {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* ── Schedule panel ── */
+.advisor-schedule-title {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* ── Light-mode button polish ── */
+:root[data-theme="light"] .advisor-submit,
+:root[data-theme="light"] .advisor-action {
+  box-shadow: 0 1px 3px rgba(14, 31, 54, 0.15);
+}
+:root[data-theme="light"] .advisor-submit:hover,
+:root[data-theme="light"] .advisor-action:hover {
+  box-shadow: 0 4px 10px rgba(14, 31, 54, 0.18);
+}
+:root[data-theme="light"] .advisor-ghost:hover {
+  background: var(--c-bg-elevated);
+  border-color: var(--c-border-strong);
+}
+:root[data-theme="light"] .advisor-nav-tab.active::after {
+  background: var(--c-accent);
+}
+:root[data-theme="light"] .advisor-lead-card:hover {
+  box-shadow: 0 20px 48px rgba(14, 31, 54, 0.14);
+}
+:root[data-theme="light"] .advisor-consultor-row:hover {
+  background: var(--c-bg-muted);
+  border-color: var(--c-border);
+}
+
+/* ── prefers-reduced-motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .advisor-shell *,
+  .advisor-shell *::before,
+  .advisor-shell *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }
