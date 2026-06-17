@@ -91,7 +91,7 @@ const SessionForm: React.FC = () => {
 
   if (submitted) {
     return (
-      <section id="sesion" className="session-section">
+      <section className="session-section">
         <div className="session-success">
           <div className="session-success-icon">✓</div>
           <h2 className="session-success-title">¡Solicitud enviada!</h2>
@@ -112,7 +112,7 @@ const SessionForm: React.FC = () => {
   }
 
   return (
-    <section id="sesion" className="session-section">
+    <section className="session-section">
       <div className="session-container">
         <div className="session-grid">
           {/* Left: Form */}

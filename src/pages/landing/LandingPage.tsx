@@ -20,6 +20,30 @@ const LandingPage: React.FC = () => {
   const observerRef = useRef<IntersectionObserver | null>(null);
 
   useEffect(() => {
+    const hash = window.location.hash.replace(/^#/, '');
+    if (!hash || !SECTION_IDS.includes(hash)) return;
+
+    const scrollToHash = () => {
+      const el = document.getElementById(hash);
+      if (!el) return;
+      const top = el.getBoundingClientRect().top + window.scrollY - 72;
+      window.scrollTo({ top, behavior: 'smooth' });
+    };
+
+    if (document.readyState === 'complete') {
+      // Page already fully loaded (cached reload or SPA navigation)
+      const t = setTimeout(scrollToHash, 80);
+      return () => clearTimeout(t);
+    }
+
+    // First load: wait for ALL resources (images, fonts) before scrolling
+    // so getBoundingClientRect() reflects the real layout
+    const onLoad = () => setTimeout(scrollToHash, 80);
+    window.addEventListener('load', onLoad, { once: true });
+    return () => window.removeEventListener('load', onLoad);
+  }, []);
+
+  useEffect(() => {
     observerRef.current = new IntersectionObserver(
       entries => {
         entries.forEach(entry => {
