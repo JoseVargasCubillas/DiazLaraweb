@@ -969,6 +969,44 @@ const AdvisorPortal = () => {
     }
   };
 
+  // PATCH cita_estado. El backend debe exponer:
+  //   PATCH /api/admin/leads-espera/:id/cita-estado  body: { estado }
+  // Fallbacks: POST /leads-espera/:id/cita-estado y PATCH /leads-espera/:id (con { cita_estado }).
+  const handleUpdateCitaEstado = async (leadId: string, estado: string) => {
+    if (!authHeaders) return;
+    setCalendarError(null);
+    const attempts: Array<{ url: string; method: string; body: unknown }> = [
+      { url: `/api/admin/leads-espera/${leadId}/cita-estado`, method: 'PATCH', body: { estado } },
+      { url: `/api/admin/leads-espera/${leadId}/cita-estado`, method: 'POST', body: { estado } },
+      { url: `/api/admin/leads-espera/${leadId}`, method: 'PATCH', body: { cita_estado: estado } },
+    ];
+    let lastErr = 'No fue posible actualizar el estado de la sesión.';
+    for (const attempt of attempts) {
+      try {
+        const res = await fetch(getAdminUrl(attempt.url), {
+          method: attempt.method,
+          headers: authHeaders,
+          body: JSON.stringify(attempt.body),
+        });
+        if (res.status === 404 || res.status === 405) continue;
+        if (!res.ok) {
+          const p = await res.json().catch(() => null);
+          lastErr = p?.error?.message || p?.error || `Error ${res.status} al actualizar la cita.`;
+          break;
+        }
+        // Éxito: refresca estado local.
+        setCalendarSessions((prev) => prev.map((l) => (l.id === leadId ? { ...l, cita_estado: estado } : l)));
+        setCalendarDetailLead((prev) => (prev && prev.id === leadId ? { ...prev, cita_estado: estado } : prev));
+        toast.success(`Cita marcada como ${estado.replace('_', ' ')}.`);
+        return;
+      } catch {
+        lastErr = 'Error de conexión al actualizar la cita.';
+      }
+    }
+    setCalendarError(lastErr);
+    toast.error(lastErr);
+  };
+
   const loadCatalogs = async () => {
     if (!authHeaders) return;
     setCatalogsError(null);
@@ -3793,12 +3831,13 @@ const AdvisorPortal = () => {
                           <div key={`c-${slot}-${dayIdx}`} className="advisor-calendar-cell">
                             {cellBookings.map(({ holder, booking }) => {
                               const meet = booking.lead.cita_meet_link || booking.lead.meet_link;
+                              const status = (booking.lead.cita_estado || '').toLowerCase();
                               return (
                                 <button
                                   key={booking.lead.id}
                                   type="button"
-                                  className={`advisor-calendar-booking holder-${normalizeName(holder.nombre)}`}
-                                  title={`${booking.lead.nombre} · ${holder.nombre} ${holder.apellido || ''}`}
+                                  className={`advisor-calendar-booking holder-${normalizeName(holder.nombre)} advisor-calendar-booking-status-${status || 'confirmada'}`}
+                                  title={`${booking.lead.nombre} · ${holder.nombre} ${holder.apellido || ''}${status ? ` · ${status}` : ''}`}
                                   onClick={() => setCalendarDetailLead(booking.lead)}
                                 >
                                   <div className="advisor-calendar-booking-time">
@@ -4279,7 +4318,31 @@ const AdvisorPortal = () => {
 
                   <div className="advisor-calendar-detail-row">
                     <span className="advisor-calendar-detail-label">Estado de la cita</span>
-                    <span className="advisor-calendar-detail-value">{lead.cita_estado || 'confirmada'}</span>
+                    <span className="advisor-calendar-detail-value advisor-calendar-detail-status">
+                      <span className={`advisor-cita-badge advisor-cita-${(lead.cita_estado || 'confirmada').toLowerCase().replace(/\s+/g, '_')}`}>
+                        {lead.cita_estado || 'confirmada'}
+                      </span>
+                      <span className="advisor-calendar-detail-status-actions">
+                        {[
+                          { value: 'tomada', label: 'Marcar tomada', variant: 'success' as const },
+                          { value: 'no_show', label: 'No-show', variant: 'warn' as const },
+                          { value: 'cancelada', label: 'Cancelar', variant: 'danger' as const },
+                        ].map((opt) => {
+                          const isCurrent = (lead.cita_estado || '').toLowerCase() === opt.value;
+                          return (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              className={`advisor-cita-action advisor-cita-action-${opt.variant} ${isCurrent ? 'is-current' : ''}`}
+                              disabled={loadingAction || isCurrent}
+                              onClick={() => runLeadAction(() => handleUpdateCitaEstado(lead.id, opt.value))}
+                            >
+                              {opt.label}
+                            </button>
+                          );
+                        })}
+                      </span>
+                    </span>
                   </div>
 
                   <div className="advisor-calendar-detail-row">

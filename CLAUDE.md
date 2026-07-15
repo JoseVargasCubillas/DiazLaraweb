@@ -80,6 +80,7 @@ GET    /api/admin/leads-espera?estado=<x>&limit=<n>
 PATCH  /api/admin/leads-espera/:id/aprobar
 POST   /api/admin/leads-espera/:id/rechazar
 POST   /api/admin/leads-espera/:id/asignar-sesion       ← Crea Google Meet + evento
+PATCH  /api/admin/leads-espera/:id/cita-estado          ← Actualiza estado de la cita (tomada|no_show|cancelada|reprogramada). El frontend hace fallback a POST del mismo path y a PATCH /leads-espera/:id con { cita_estado }.
 POST   /api/admin/leads-espera/:id/convertir-cliente
 POST   /api/admin/leads-espera/:id/pasar-a-cliente
 PUT    /api/admin/leads-espera/:id

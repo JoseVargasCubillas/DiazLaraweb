@@ -3871,3 +3871,67 @@
     gap: 4px;
   }
 }
+
+
+/* ─── Estado de cita ────────────────────────────────────── */
+.advisor-calendar-detail-status {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.advisor-cita-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  background: #e0e7ff;
+  color: #3730a3;
+  width: fit-content;
+}
+.advisor-cita-badge.advisor-cita-tomada { background: #dcfce7; color: #166534; }
+.advisor-cita-badge.advisor-cita-no_show { background: #fef3c7; color: #92400e; }
+.advisor-cita-badge.advisor-cita-cancelada { background: #fee2e2; color: #991b1b; }
+.advisor-cita-badge.advisor-cita-reprogramada { background: #ede9fe; color: #5b21b6; }
+
+.advisor-calendar-detail-status-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.advisor-cita-action {
+  border: 1px solid var(--c-border, #e5e7eb);
+  background: var(--c-surface, #fff);
+  color: var(--c-text-primary, #111);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+}
+.advisor-cita-action:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+.advisor-cita-action:disabled { opacity: 0.5; cursor: not-allowed; }
+.advisor-cita-action.is-current { border-color: #6366f1; background: #eef2ff; color: #3730a3; }
+.advisor-cita-action-success:hover:not(:disabled) { border-color: #16a34a; background: #f0fdf4; color: #166534; }
+.advisor-cita-action-warn:hover:not(:disabled) { border-color: #d97706; background: #fffbeb; color: #92400e; }
+.advisor-cita-action-danger:hover:not(:disabled) { border-color: #dc2626; background: #fef2f2; color: #991b1b; }
+
+/* Estado reflejado en los bloques del calendario */
+.advisor-calendar-booking.advisor-calendar-booking-status-tomada {
+  outline: 2px solid #22c55e;
+  outline-offset: -2px;
+}
+.advisor-calendar-booking.advisor-calendar-booking-status-no_show {
+  opacity: 0.75;
+  filter: grayscale(0.35);
+}
+.advisor-calendar-booking.advisor-calendar-booking-status-cancelada {
+  opacity: 0.45;
+  text-decoration: line-through;
+  filter: grayscale(0.6);
+}
