@@ -3935,3 +3935,74 @@
   text-decoration: line-through;
   filter: grayscale(0.6);
 }
+
+
+/* ─── Toggle vista día/semana + hoy + ahora ────────────── */
+.advisor-calendar-mode-switch {
+  display: inline-flex;
+  border: 1px solid var(--c-border, #e5e7eb);
+  border-radius: 999px;
+  padding: 3px;
+  background: var(--c-surface, #fff);
+}
+.advisor-calendar-mode {
+  border: none;
+  background: transparent;
+  padding: 6px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--c-text-secondary, #6b7280);
+  transition: background 120ms ease, color 120ms ease;
+}
+.advisor-calendar-mode.is-active {
+  background: #6366f1;
+  color: #fff;
+}
+.advisor-calendar-mode:hover:not(.is-active) {
+  color: var(--c-text-primary, #111);
+}
+
+.advisor-calendar-day-head.is-today {
+  background: linear-gradient(180deg, #eef2ff, var(--c-surface, #fff));
+  position: relative;
+}
+.advisor-calendar-today-pill {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #6366f1;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.advisor-calendar-cell.is-today-col {
+  background: rgba(99, 102, 241, 0.04);
+}
+.advisor-calendar-cell.is-now-cell {
+  background: rgba(99, 102, 241, 0.12);
+  box-shadow: inset 0 2px 0 0 #6366f1;
+}
+.advisor-calendar-time.is-now {
+  color: #6366f1;
+  font-weight: 700;
+}
+.advisor-calendar-time.is-now::after {
+  content: '●';
+  margin-left: 4px;
+  color: #ef4444;
+  font-size: 10px;
+  vertical-align: middle;
+}
+
+/* Encabezado de columna cuando es un holder (modo día) */
+.advisor-calendar-day-head.holder-jessica {
+  border-top: 3px solid #a855f7;
+}
+.advisor-calendar-day-head.holder-jazmin {
+  border-top: 3px solid #06b6d4;
+}

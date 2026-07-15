@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import './advisor.css';
 import logoMenu from '../../assets/logo menu.png';
@@ -803,6 +803,14 @@ const AdvisorPortal = () => {
   const [calendarLoading, setCalendarLoading] = useState(false);
   const [calendarDetailLead, setCalendarDetailLead] = useState<LeadRecord | null>(null);
   const [calendarCopyOk, setCalendarCopyOk] = useState(false);
+  const [calendarViewMode, setCalendarViewMode] = useState<'week' | 'day'>('week');
+  const [nowTick, setNowTick] = useState<number>(() => Date.now());
+
+  useEffect(() => {
+    if (view !== 'calendario') return;
+    const id = window.setInterval(() => setNowTick(Date.now()), 60_000);
+    return () => window.clearInterval(id);
+  }, [view]);
   const [calendarWeekStart, setCalendarWeekStart] = useState<Date>(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -3711,13 +3719,18 @@ const AdvisorPortal = () => {
         {view === 'calendario' && (() => {
           const dayLabels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
           const monthLabels = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-          const weekDays: Date[] = Array.from({ length: 5 }, (_, i) => {
-            const d = new Date(calendarWeekStart);
-            d.setDate(d.getDate() + i);
-            return d;
-          });
-          const weekStartMs = new Date(calendarWeekStart).setHours(0, 0, 0, 0);
-          const weekEndMs = weekStartMs + 5 * 24 * 60 * 60 * 1000;
+
+          const isWeek = calendarViewMode === 'week';
+          // En modo semana la referencia es Lunes; en modo día es el día seleccionado.
+          const rangeDays: Date[] = isWeek
+            ? Array.from({ length: 5 }, (_, i) => {
+                const d = new Date(calendarWeekStart);
+                d.setDate(d.getDate() + i);
+                return d;
+              })
+            : [new Date(calendarWeekStart)];
+          const rangeStartMs = new Date(rangeDays[0]).setHours(0, 0, 0, 0);
+          const rangeEndMs = rangeStartMs + rangeDays.length * 24 * 60 * 60 * 1000;
 
           type Booking = { lead: LeadRecord; start: Date; end: Date; startMinutes: number };
           const bookingsByHolderAndDay = new Map<string, Booking[]>();
@@ -3728,7 +3741,7 @@ const AdvisorPortal = () => {
             const startD = new Date(lead.cita_fecha_hora_inicio);
             if (Number.isNaN(startD.getTime())) continue;
             const t = startD.getTime();
-            if (t < weekStartMs || t >= weekEndMs) continue;
+            if (t < rangeStartMs || t >= rangeEndMs) continue;
 
             let holderId = lead.consultor_id || '';
             if (!holderId || !holdersById.has(holderId)) {
@@ -3740,7 +3753,7 @@ const AdvisorPortal = () => {
               if (!match) continue;
               holderId = match.id;
             }
-            const dayIdx = Math.floor((new Date(startD).setHours(0, 0, 0, 0) - weekStartMs) / (24 * 60 * 60 * 1000));
+            const dayIdx = Math.floor((new Date(startD).setHours(0, 0, 0, 0) - rangeStartMs) / (24 * 60 * 60 * 1000));
             const endD = lead.cita_fecha_hora_fin
               ? new Date(lead.cita_fecha_hora_fin)
               : new Date(startD.getTime() + SESSION_DURATION_MIN * 60 * 1000);
@@ -3755,7 +3768,7 @@ const AdvisorPortal = () => {
             bookingsByHolderAndDay.set(key, list);
           }
 
-          const shiftWeek = (days: number) => {
+          const shiftRange = (days: number) => {
             const d = new Date(calendarWeekStart);
             d.setDate(d.getDate() + days);
             setCalendarWeekStart(d);
@@ -3763,12 +3776,54 @@ const AdvisorPortal = () => {
           const goToday = () => {
             const d = new Date();
             d.setHours(0, 0, 0, 0);
-            const day = d.getDay();
-            const diffToMonday = day === 0 ? -6 : 1 - day;
-            d.setDate(d.getDate() + diffToMonday);
+            if (isWeek) {
+              const day = d.getDay();
+              const diffToMonday = day === 0 ? -6 : 1 - day;
+              d.setDate(d.getDate() + diffToMonday);
+            }
             setCalendarWeekStart(d);
           };
-          const weekLabel = `${calendarWeekStart.getDate()} ${monthLabels[calendarWeekStart.getMonth()]} – ${weekDays[4].getDate()} ${monthLabels[weekDays[4].getMonth()]} ${weekDays[4].getFullYear()}`;
+          const switchMode = (mode: 'week' | 'day') => {
+            const d = new Date(calendarWeekStart);
+            d.setHours(0, 0, 0, 0);
+            if (mode === 'week') {
+              const day = d.getDay();
+              const diffToMonday = day === 0 ? -6 : 1 - day;
+              d.setDate(d.getDate() + diffToMonday);
+              setCalendarWeekStart(d);
+            }
+            setCalendarViewMode(mode);
+          };
+
+          const now = new Date(nowTick);
+          const todayMs = new Date(now).setHours(0, 0, 0, 0);
+          const nowMinutes = now.getHours() * 60 + now.getMinutes();
+          const nowIsInWindow = nowMinutes >= SESSION_HOURS_START * 60 && nowMinutes < SESSION_HOURS_END * 60;
+          const todayDayIdx = rangeDays.findIndex((d) => new Date(d).setHours(0, 0, 0, 0) === todayMs);
+
+          const rangeLabel = isWeek
+            ? `${rangeDays[0].getDate()} ${monthLabels[rangeDays[0].getMonth()]} – ${rangeDays[rangeDays.length - 1].getDate()} ${monthLabels[rangeDays[rangeDays.length - 1].getMonth()]} ${rangeDays[rangeDays.length - 1].getFullYear()}`
+            : `${dayLabels[(rangeDays[0].getDay() + 6) % 7]} ${rangeDays[0].getDate()} de ${monthLabels[rangeDays[0].getMonth()]} ${rangeDays[0].getFullYear()}`;
+
+          // Encabezados de columna. En modo semana → días. En modo día → holders.
+          const columns: Array<{ id: string; primary: string; secondary: string; isToday?: boolean; holderId?: string }> =
+            isWeek
+              ? rangeDays.map((d, i) => ({
+                  id: `d-${i}`,
+                  primary: dayLabels[i],
+                  secondary: `${d.getDate()} ${monthLabels[d.getMonth()]}`,
+                  isToday: new Date(d).setHours(0, 0, 0, 0) === todayMs,
+                }))
+              : sessionHolders.map((h) => ({
+                  id: `h-${h.id}`,
+                  primary: `${h.nombre}${h.apellido ? ` ${h.apellido}` : ''}`,
+                  secondary: h.email || '',
+                  holderId: h.id,
+                }));
+
+          const gridColsStyle: CSSProperties = {
+            gridTemplateColumns: `72px repeat(${columns.length || 1}, minmax(140px, 1fr))`,
+          };
 
           return (
             <>
@@ -3790,11 +3845,15 @@ const AdvisorPortal = () => {
 
               <div className="advisor-calendar-toolbar">
                 <div className="advisor-calendar-nav">
-                  <button type="button" className="advisor-ghost" onClick={() => shiftWeek(-7)}>◀ Semana anterior</button>
+                  <button type="button" className="advisor-ghost" onClick={() => shiftRange(isWeek ? -7 : -1)}>◀ {isWeek ? 'Semana anterior' : 'Día anterior'}</button>
                   <button type="button" className="advisor-ghost" onClick={goToday}>Hoy</button>
-                  <button type="button" className="advisor-ghost" onClick={() => shiftWeek(7)}>Semana siguiente ▶</button>
+                  <button type="button" className="advisor-ghost" onClick={() => shiftRange(isWeek ? 7 : 1)}>{isWeek ? 'Semana siguiente' : 'Día siguiente'} ▶</button>
                 </div>
-                <div className="advisor-calendar-week-label">{weekLabel}</div>
+                <div className="advisor-calendar-mode-switch" role="tablist" aria-label="Vista del calendario">
+                  <button type="button" role="tab" aria-selected={isWeek} className={`advisor-calendar-mode ${isWeek ? 'is-active' : ''}`} onClick={() => switchMode('week')}>Semana</button>
+                  <button type="button" role="tab" aria-selected={!isWeek} className={`advisor-calendar-mode ${!isWeek ? 'is-active' : ''}`} onClick={() => switchMode('day')}>Día</button>
+                </div>
+                <div className="advisor-calendar-week-label">{rangeLabel}</div>
               </div>
 
               {calendarError && <p className="advisor-error">{calendarError}</p>}
@@ -3804,31 +3863,53 @@ const AdvisorPortal = () => {
                 </p>
               )}
 
-              <div className="advisor-calendar-grid">
+              <div className="advisor-calendar-grid" style={gridColsStyle}>
                 <div className="advisor-calendar-corner">Hora</div>
-                {weekDays.map((d, i) => (
-                  <div key={`h-${i}`} className="advisor-calendar-day-head">
-                    <span className="advisor-calendar-day-name">{dayLabels[i]}</span>
-                    <span className="advisor-calendar-day-num">{d.getDate()} {monthLabels[d.getMonth()]}</span>
-                  </div>
-                ))}
+                {columns.map((col) => {
+                  const holderNombre = col.holderId ? sessionHolders.find((h) => h.id === col.holderId)?.nombre : undefined;
+                  return (
+                    <div key={col.id} className={`advisor-calendar-day-head ${col.isToday ? 'is-today' : ''} ${holderNombre ? `holder-${normalizeName(holderNombre)}` : ''}`}>
+                      <span className="advisor-calendar-day-name">{col.primary}</span>
+                      {col.secondary && <span className="advisor-calendar-day-num">{col.secondary}</span>}
+                      {col.isToday && <span className="advisor-calendar-today-pill">Hoy</span>}
+                    </div>
+                  );
+                })}
 
                 {SESSION_TIME_SLOTS.map((slot) => {
                   const [hh, mm] = slot.split(':').map(Number);
                   const slotMinutes = hh * 60 + mm;
+                  const isNowSlot =
+                    nowIsInWindow &&
+                    todayDayIdx >= 0 &&
+                    nowMinutes >= slotMinutes &&
+                    nowMinutes < slotMinutes + SESSION_SLOT_MINUTES;
                   return (
                     <Fragment key={`row-${slot}`}>
-                      <div className="advisor-calendar-time">{slot}</div>
-                      {weekDays.map((_d, dayIdx) => {
+                      <div className={`advisor-calendar-time ${isNowSlot ? 'is-now' : ''}`}>{slot}</div>
+                      {columns.map((col, colIdx) => {
+                        // En modo semana: colIdx = dayIdx; agrupa a todos los holders.
+                        // En modo día: colIdx = holderIdx; usa dayIdx = 0 y filtra por holder.
                         const cellBookings: Array<{ holder: ConsultorProfile; booking: Booking }> = [];
-                        for (const holder of sessionHolders) {
-                          const bookings = bookingsByHolderAndDay.get(`${holder.id}|${dayIdx}`) || [];
-                          for (const b of bookings) {
-                            if (b.startMinutes === slotMinutes) cellBookings.push({ holder, booking: b });
+                        if (isWeek) {
+                          for (const holder of sessionHolders) {
+                            const bookings = bookingsByHolderAndDay.get(`${holder.id}|${colIdx}`) || [];
+                            for (const b of bookings) {
+                              if (b.startMinutes === slotMinutes) cellBookings.push({ holder, booking: b });
+                            }
+                          }
+                        } else if (col.holderId) {
+                          const holder = sessionHolders.find((h) => h.id === col.holderId);
+                          if (holder) {
+                            const bookings = bookingsByHolderAndDay.get(`${holder.id}|0`) || [];
+                            for (const b of bookings) {
+                              if (b.startMinutes === slotMinutes) cellBookings.push({ holder, booking: b });
+                            }
                           }
                         }
+                        const isTodayCol = isWeek ? !!col.isToday : todayDayIdx === 0;
                         return (
-                          <div key={`c-${slot}-${dayIdx}`} className="advisor-calendar-cell">
+                          <div key={`c-${slot}-${col.id}`} className={`advisor-calendar-cell ${isTodayCol ? 'is-today-col' : ''} ${isNowSlot && isTodayCol ? 'is-now-cell' : ''}`}>
                             {cellBookings.map(({ holder, booking }) => {
                               const meet = booking.lead.cita_meet_link || booking.lead.meet_link;
                               const status = (booking.lead.cita_estado || '').toLowerCase();
@@ -3844,7 +3925,7 @@ const AdvisorPortal = () => {
                                     {booking.start.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
                                   </div>
                                   <div className="advisor-calendar-booking-name">{booking.lead.nombre}</div>
-                                  <div className="advisor-calendar-booking-holder">{holder.nombre}</div>
+                                  {isWeek && <div className="advisor-calendar-booking-holder">{holder.nombre}</div>}
                                   {meet && (
                                     <a
                                       href={meet}
