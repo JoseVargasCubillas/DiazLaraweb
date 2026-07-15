@@ -804,6 +804,7 @@ const AdvisorPortal = () => {
   const [calendarDetailLead, setCalendarDetailLead] = useState<LeadRecord | null>(null);
   const [calendarCopyOk, setCalendarCopyOk] = useState(false);
   const [calendarViewMode, setCalendarViewMode] = useState<'week' | 'day'>('week');
+  const [calendarHolderFilter, setCalendarHolderFilter] = useState<string>('all');
   const [nowTick, setNowTick] = useState<number>(() => Date.now());
 
   useEffect(() => {
@@ -3721,6 +3722,9 @@ const AdvisorPortal = () => {
           const monthLabels = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 
           const isWeek = calendarViewMode === 'week';
+          const visibleHolders = calendarHolderFilter === 'all'
+            ? sessionHolders
+            : sessionHolders.filter((h) => h.id === calendarHolderFilter);
           // En modo semana la referencia es Lunes; en modo día es el día seleccionado.
           const rangeDays: Date[] = isWeek
             ? Array.from({ length: 5 }, (_, i) => {
@@ -3753,6 +3757,7 @@ const AdvisorPortal = () => {
               if (!match) continue;
               holderId = match.id;
             }
+            if (calendarHolderFilter !== 'all' && holderId !== calendarHolderFilter) continue;
             const dayIdx = Math.floor((new Date(startD).setHours(0, 0, 0, 0) - rangeStartMs) / (24 * 60 * 60 * 1000));
             const endD = lead.cita_fecha_hora_fin
               ? new Date(lead.cita_fecha_hora_fin)
@@ -3814,7 +3819,7 @@ const AdvisorPortal = () => {
                   secondary: `${d.getDate()} ${monthLabels[d.getMonth()]}`,
                   isToday: new Date(d).setHours(0, 0, 0, 0) === todayMs,
                 }))
-              : sessionHolders.map((h) => ({
+              : visibleHolders.map((h) => ({
                   id: `h-${h.id}`,
                   primary: `${h.nombre}${h.apellido ? ` ${h.apellido}` : ''}`,
                   secondary: h.email || '',
@@ -3853,6 +3858,27 @@ const AdvisorPortal = () => {
                   <button type="button" role="tab" aria-selected={isWeek} className={`advisor-calendar-mode ${isWeek ? 'is-active' : ''}`} onClick={() => switchMode('week')}>Semana</button>
                   <button type="button" role="tab" aria-selected={!isWeek} className={`advisor-calendar-mode ${!isWeek ? 'is-active' : ''}`} onClick={() => switchMode('day')}>Día</button>
                 </div>
+                {sessionHolders.length > 0 && (
+                  <div className="advisor-calendar-holder-filter" role="group" aria-label="Filtrar por consultora">
+                    <button
+                      type="button"
+                      className={`advisor-calendar-holder-chip ${calendarHolderFilter === 'all' ? 'is-active' : ''}`}
+                      onClick={() => setCalendarHolderFilter('all')}
+                    >
+                      Todas
+                    </button>
+                    {sessionHolders.map((h) => (
+                      <button
+                        key={h.id}
+                        type="button"
+                        className={`advisor-calendar-holder-chip holder-${normalizeName(h.nombre)} ${calendarHolderFilter === h.id ? 'is-active' : ''}`}
+                        onClick={() => setCalendarHolderFilter(h.id)}
+                      >
+                        {h.nombre}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <div className="advisor-calendar-week-label">{rangeLabel}</div>
               </div>
 
@@ -3892,14 +3918,14 @@ const AdvisorPortal = () => {
                         // En modo día: colIdx = holderIdx; usa dayIdx = 0 y filtra por holder.
                         const cellBookings: Array<{ holder: ConsultorProfile; booking: Booking }> = [];
                         if (isWeek) {
-                          for (const holder of sessionHolders) {
+                          for (const holder of visibleHolders) {
                             const bookings = bookingsByHolderAndDay.get(`${holder.id}|${colIdx}`) || [];
                             for (const b of bookings) {
                               if (b.startMinutes === slotMinutes) cellBookings.push({ holder, booking: b });
                             }
                           }
                         } else if (col.holderId) {
-                          const holder = sessionHolders.find((h) => h.id === col.holderId);
+                          const holder = visibleHolders.find((h) => h.id === col.holderId);
                           if (holder) {
                             const bookings = bookingsByHolderAndDay.get(`${holder.id}|0`) || [];
                             for (const b of bookings) {

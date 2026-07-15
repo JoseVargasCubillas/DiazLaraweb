@@ -4006,3 +4006,51 @@
 .advisor-calendar-day-head.holder-jazmin {
   border-top: 3px solid #06b6d4;
 }
+
+
+/* ─── Filtro por consultora ────────────────────────────── */
+.advisor-calendar-holder-filter {
+  display: inline-flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.advisor-calendar-holder-chip {
+  border: 1px solid var(--c-border, #e5e7eb);
+  background: var(--c-surface, #fff);
+  color: var(--c-text-secondary, #6b7280);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 120ms ease, background 120ms ease, color 120ms ease, border-color 120ms ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.advisor-calendar-holder-chip:hover {
+  transform: translateY(-1px);
+  color: var(--c-text-primary, #111);
+}
+.advisor-calendar-holder-chip.is-active {
+  color: #fff;
+  border-color: transparent;
+  background: #6366f1;
+}
+.advisor-calendar-holder-chip.holder-jessica.is-active {
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+}
+.advisor-calendar-holder-chip.holder-jazmin.is-active {
+  background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+}
+.advisor-calendar-holder-chip.holder-jessica::before,
+.advisor-calendar-holder-chip.holder-jazmin::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.advisor-calendar-holder-chip.holder-jessica::before { background: #a855f7; }
+.advisor-calendar-holder-chip.holder-jazmin::before { background: #06b6d4; }
+.advisor-calendar-holder-chip.is-active::before { background: rgba(255,255,255,0.9); }
