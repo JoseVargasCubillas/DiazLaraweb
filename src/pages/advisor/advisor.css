@@ -3628,3 +3628,158 @@
   border-color: var(--c-border-subtle);
 }
 
+
+
+/* ─── Calendario de sesiones ───────────────────────────── */
+.advisor-calendar-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.advisor-calendar-nav {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.advisor-calendar-week-label {
+  font-weight: 600;
+  color: var(--c-text-primary, #111);
+  font-size: 15px;
+}
+.advisor-calendar-grid {
+  display: grid;
+  grid-template-columns: 72px repeat(5, minmax(140px, 1fr));
+  gap: 1px;
+  background: var(--c-border, #e5e7eb);
+  border: 1px solid var(--c-border, #e5e7eb);
+  border-radius: 12px;
+  overflow: hidden;
+  font-size: 13px;
+}
+.advisor-calendar-corner,
+.advisor-calendar-day-head,
+.advisor-calendar-time,
+.advisor-calendar-cell {
+  background: var(--c-surface, #fff);
+}
+.advisor-calendar-corner {
+  padding: 10px 8px;
+  font-weight: 600;
+  color: var(--c-text-secondary, #6b7280);
+  text-align: center;
+}
+.advisor-calendar-day-head {
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.advisor-calendar-day-name {
+  font-weight: 700;
+  color: var(--c-text-primary, #111);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 12px;
+}
+.advisor-calendar-day-num {
+  color: var(--c-text-secondary, #6b7280);
+  font-size: 12px;
+}
+.advisor-calendar-time {
+  padding: 6px 8px;
+  color: var(--c-text-secondary, #6b7280);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  font-weight: 500;
+}
+.advisor-calendar-cell {
+  min-height: 44px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.advisor-calendar-booking {
+  border-radius: 8px;
+  padding: 6px 8px;
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.25;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: #6366f1;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+}
+.advisor-calendar-booking.holder-jessica {
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+}
+.advisor-calendar-booking.holder-jazmin {
+  background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+}
+.advisor-calendar-booking-time {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.advisor-calendar-booking-name {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.advisor-calendar-booking-holder {
+  opacity: 0.85;
+  font-size: 11px;
+}
+.advisor-calendar-booking-meet {
+  color: #fff;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  font-size: 11px;
+  margin-top: 2px;
+}
+.advisor-calendar-booking-meet:hover {
+  text-decoration: underline;
+}
+.advisor-calendar-legend {
+  display: flex;
+  gap: 20px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+.advisor-calendar-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--c-text-secondary, #6b7280);
+}
+.advisor-calendar-legend-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  background: #6366f1;
+  display: inline-block;
+}
+.advisor-calendar-legend-swatch.holder-jessica {
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+}
+.advisor-calendar-legend-swatch.holder-jazmin {
+  background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+}
+@media (max-width: 900px) {
+  .advisor-calendar-grid {
+    grid-template-columns: 56px repeat(5, minmax(100px, 1fr));
+    font-size: 12px;
+  }
+  .advisor-calendar-booking {
+    font-size: 11px;
+  }
+}

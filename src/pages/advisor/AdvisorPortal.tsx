@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import './advisor.css';
 import logoMenu from '../../assets/logo menu.png';
@@ -96,10 +96,46 @@ const IcoFolder = () => (
 );
 // ─────────────────────────────────────────────────────────────
 
-const TIME_SLOTS = Array.from({ length: 29 }, (_, i) => {
-  const m = 7 * 60 + i * 30;
-  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
-});
+// ── Reglas de sesiones ────────────────────────────────────────
+// Ventana permitida: 09:00 – 16:00, slots de 15 minutos. Ver CLAUDE.md §6.
+const SESSION_HOURS_START = 9;
+const SESSION_HOURS_END = 16; // exclusivo (último slot inicia 15:45, termina 16:00)
+const SESSION_SLOT_MINUTES = 15;
+const SESSION_DURATION_MIN = 15;
+
+const SESSION_TIME_SLOTS = Array.from(
+  { length: ((SESSION_HOURS_END - SESSION_HOURS_START) * 60) / SESSION_SLOT_MINUTES },
+  (_, i) => {
+    const total = SESSION_HOURS_START * 60 + i * SESSION_SLOT_MINUTES;
+    return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+  }
+);
+
+// Únicas personas a las que se pueden asignar sesiones. Cambia esto para actualizar el equipo.
+const SESSION_HOLDER_NAMES: Array<{ nombre: string; apellido: string }> = [
+  { nombre: 'Jessica', apellido: 'Tapia' },
+  { nombre: 'Jazmin', apellido: 'Robles' },
+];
+
+const normalizeName = (value?: string | null) =>
+  (value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase();
+
+const isSessionHolder = (c: Pick<ConsultorProfile, 'nombre' | 'apellido'>) => {
+  const nombre = normalizeName(c.nombre);
+  const apellido = normalizeName(c.apellido);
+  return SESSION_HOLDER_NAMES.some(
+    (h) =>
+      normalizeName(h.nombre) === nombre &&
+      (apellido ? normalizeName(h.apellido) === apellido : true)
+  );
+};
+
+const sessionHolderKey = (nombre?: string | null, apellido?: string | null) =>
+  `${normalizeName(nombre)}|${normalizeName(apellido)}`;
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL as string | undefined)?.trim() || 'http://localhost:3000';
 const IS_LOCAL_API = /^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(API_BASE_URL);
@@ -108,7 +144,7 @@ const IS_PRODUCTION_HOST = typeof window !== 'undefined'
 const API_NOT_CONFIGURED = IS_LOCAL_API && IS_PRODUCTION_HOST;
 const ADMIN_TOKEN_KEY = 'diazlara_advisor_token';
 
-type View = 'leads' | 'clientes_consultor' | 'agregar_cliente' | 'historico_clientes' | 'consultores' | 'registrar' | 'cuenta';
+type View = 'leads' | 'clientes_consultor' | 'agregar_cliente' | 'historico_clientes' | 'consultores' | 'registrar' | 'cuenta' | 'calendario';
 
 const formatSessionDate = (iso?: string | null) => {
   if (!iso) return '';
@@ -377,13 +413,15 @@ type ScheduleDraft = {
   duracion: number;
   estatus_comercial: EstatusComercial;
   notas_cliente: string;
+  session_holder_id: string;
 };
 
 const defaultScheduleDraft = (): ScheduleDraft => ({
   fecha_hora_inicio: '',
-  duracion: 15,
+  duracion: SESSION_DURATION_MIN,
   estatus_comercial: 'prospecto',
   notas_cliente: '',
+  session_holder_id: '',
 });
 
 const defaultAssignmentDraft = (): AssignmentDraft => ({
@@ -759,6 +797,19 @@ const AdvisorPortal = () => {
   const [scheduleDrafts, setScheduleDrafts] = useState<Record<string, ScheduleDraft>>({});
   const [meetLinks, setMeetLinks] = useState<Record<string, string>>({});
 
+  // Calendario de sesiones
+  const [calendarSessions, setCalendarSessions] = useState<LeadRecord[]>([]);
+  const [calendarError, setCalendarError] = useState<string | null>(null);
+  const [calendarLoading, setCalendarLoading] = useState(false);
+  const [calendarWeekStart, setCalendarWeekStart] = useState<Date>(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    const day = d.getDay(); // 0 = domingo
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+    d.setDate(d.getDate() + diffToMonday);
+    return d;
+  });
+
   // Consultores
   const [consultores, setConsultores] = useState<ConsultorProfile[]>([]);
   const [consultoresError, setConsultoresError] = useState<string | null>(null);
@@ -890,6 +941,29 @@ const AdvisorPortal = () => {
       setConsultoresInitiallyLoaded(true);
     } catch {
       setConsultoresError('Error de conexión al cargar los consultores.');
+    }
+  };
+
+  const loadCalendarSessions = async () => {
+    if (!authHeaders) return;
+    setCalendarError(null);
+    setCalendarLoading(true);
+    try {
+      const res = await fetch(
+        getAdminUrl('/api/admin/leads-espera?estado=sesion_agendada&limit=500'),
+        { headers: authHeaders }
+      );
+      if (!res.ok) {
+        setCalendarError('No fue posible cargar las sesiones.');
+        return;
+      }
+      const payload = await res.json();
+      const items: LeadRecord[] = Array.isArray(payload?.data) ? payload.data : [];
+      setCalendarSessions(items.filter((l) => !!l.cita_fecha_hora_inicio));
+    } catch {
+      setCalendarError('Error de conexión al cargar las sesiones.');
+    } finally {
+      setCalendarLoading(false);
     }
   };
 
@@ -1038,6 +1112,7 @@ const AdvisorPortal = () => {
         await loadProfile(token);
         if (!cancelled) await loadLeads(token, activeEstado);
         if (!cancelled) loadStats(token);
+        if (!cancelled) loadConsultores().catch(() => { /* silencioso: puede requerir admin */ });
       } catch {
         if (!cancelled) {
           setToken('');
@@ -1068,6 +1143,10 @@ const AdvisorPortal = () => {
     if (view === 'clientes_consultor' && token) loadManualClients();
     if (view === 'historico_clientes' && token) loadClientHistory();
     if ((view === 'agregar_cliente' || view === 'clientes_consultor') && token) loadCatalogs();
+    if (view === 'calendario' && token) {
+      loadCalendarSessions();
+      loadConsultores();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, isSuperAdmin]);
 
@@ -1261,21 +1340,43 @@ const AdvisorPortal = () => {
     if (!profile || !authHeaders) return;
     const draft = scheduleDrafts[leadId] || defaultScheduleDraft();
     setScheduleErrors((prev) => { const { [leadId]: _, ...rest } = prev; return rest; });
+    if (!draft.session_holder_id) {
+      setScheduleErrors((prev) => ({ ...prev, [leadId]: 'Selecciona a quién se le asigna la sesión (Jessica o Jazmin).' }));
+      throw new Error('Selecciona a quién se le asigna la sesión.');
+    }
     if (!draft.fecha_hora_inicio) {
       setScheduleErrors((prev) => ({ ...prev, [leadId]: 'Selecciona fecha y hora para la sesión.' }));
       throw new Error('Selecciona fecha y hora para la sesión.');
     }
     const start = new Date(draft.fecha_hora_inicio);
+    if (Number.isNaN(start.getTime())) {
+      setScheduleErrors((prev) => ({ ...prev, [leadId]: 'Fecha y hora inválidas.' }));
+      throw new Error('Fecha y hora inválidas.');
+    }
     if (start.getTime() < Date.now() - 60_000) {
       setScheduleErrors((prev) => ({ ...prev, [leadId]: 'La fecha debe ser futura.' }));
       throw new Error('La fecha debe ser futura.');
     }
-    const end = new Date(start.getTime() + draft.duracion * 60 * 1000);
+    const startMinutes = start.getHours() * 60 + start.getMinutes();
+    const minMinutes = SESSION_HOURS_START * 60;
+    const maxStartMinutes = SESSION_HOURS_END * 60 - SESSION_DURATION_MIN;
+    if (
+      startMinutes < minMinutes ||
+      startMinutes > maxStartMinutes ||
+      startMinutes % SESSION_SLOT_MINUTES !== 0
+    ) {
+      setScheduleErrors((prev) => ({
+        ...prev,
+        [leadId]: `Las sesiones son de ${SESSION_DURATION_MIN} min entre ${String(SESSION_HOURS_START).padStart(2, '0')}:00 y ${String(SESSION_HOURS_END).padStart(2, '0')}:00.`,
+      }));
+      throw new Error('Horario fuera de la ventana permitida.');
+    }
+    const end = new Date(start.getTime() + SESSION_DURATION_MIN * 60 * 1000);
     const res = await fetch(getAdminUrl(`/api/admin/leads-espera/${leadId}/asignar-sesion`), {
       method: 'POST',
       headers: authHeaders,
       body: JSON.stringify({
-        consultor_id: profile.id,
+        consultor_id: draft.session_holder_id,
         fecha_hora_inicio: start.toISOString(),
         fecha_hora_fin: end.toISOString(),
         notas_cliente: draft.notas_cliente.trim() || undefined,
@@ -1958,6 +2059,11 @@ const AdvisorPortal = () => {
     });
   }, [leads, leadsSearch]);
 
+  const sessionHolders = useMemo(
+    () => consultores.filter((c) => c.activo !== false && isSessionHolder(c)),
+    [consultores]
+  );
+
   const filteredConsultores = useMemo(() => {
     const q = consultoresSearch.trim().toLowerCase();
     if (!q) return consultores;
@@ -2542,6 +2648,9 @@ const AdvisorPortal = () => {
             <button type="button" className={`advisor-nav-tab ${view === 'historico_clientes' ? 'active' : ''}`} onClick={() => setView('historico_clientes')}>
               Historico
             </button>
+            <button type="button" className={`advisor-nav-tab ${view === 'calendario' ? 'active' : ''}`} onClick={() => setView('calendario')}>
+              Calendario
+            </button>
             {isSuperAdmin && (
               <button type="button" className={`advisor-nav-tab ${view === 'consultores' ? 'active' : ''}`} onClick={() => setView('consultores')}>
                 Administración
@@ -2844,10 +2953,31 @@ const AdvisorPortal = () => {
                           <div className="advisor-schedule-header">
                             <IcoCalendar />
                             <span>Agendar sesión</span>
-                            <span className="advisor-schedule-sub">Se creará un evento en Google Calendar y se enviará invitación al correo del lead.</span>
+                            <span className="advisor-schedule-sub">Se creará un evento en Google Calendar y se enviará invitación al correo del lead. Las sesiones son de {SESSION_DURATION_MIN} min entre las {String(SESSION_HOURS_START).padStart(2, '0')}:00 y las {String(SESSION_HOURS_END).padStart(2, '0')}:00.</span>
                           </div>
 
                           <div className="advisor-schedule-grid">
+                            <div className="advisor-field">
+                              <label htmlFor={`sch-holder-${lead.id}`}>Sesión asignada a</label>
+                              <select
+                                id={`sch-holder-${lead.id}`}
+                                value={scheduleDraft.session_holder_id}
+                                onChange={(e) => updateScheduleDraft(lead.id, { session_holder_id: e.target.value })}
+                              >
+                                <option value="">Selecciona…</option>
+                                {sessionHolders.map((h) => (
+                                  <option key={h.id} value={h.id}>
+                                    {h.nombre}{h.apellido ? ` ${h.apellido}` : ''}
+                                  </option>
+                                ))}
+                              </select>
+                              {sessionHolders.length === 0 && (
+                                <p className="advisor-schedule-error" style={{ marginTop: 6 }}>
+                                  No se encontraron consultoras habilitadas ({SESSION_HOLDER_NAMES.map((h) => `${h.nombre} ${h.apellido}`).join(' o ')}). Pide a un administrador que las dé de alta.
+                                </p>
+                              )}
+                            </div>
+
                             <div className="advisor-field">
                               <label htmlFor={`sch-date-${lead.id}`}>Fecha</label>
                               <input
@@ -2857,7 +2987,7 @@ const AdvisorPortal = () => {
                                 value={schDate}
                                 onChange={(e) => updateScheduleDraft(lead.id, {
                                   fecha_hora_inicio: e.target.value
-                                    ? `${e.target.value}T${schTime || '09:00'}`
+                                    ? `${e.target.value}T${schTime || SESSION_TIME_SLOTS[0]}`
                                     : '',
                                 })}
                               />
@@ -2875,13 +3005,13 @@ const AdvisorPortal = () => {
                                 })}
                               >
                                 <option value="">Selecciona hora…</option>
-                                {TIME_SLOTS.map((t) => <option key={t} value={t}>{t}</option>)}
+                                {SESSION_TIME_SLOTS.map((t) => <option key={t} value={t}>{t}</option>)}
                               </select>
                             </div>
 
                             <div className="advisor-field">
                               <label>Duración</label>
-                              <p style={{ margin: 0, paddingTop: 6, fontSize: 14, color: 'var(--c-text-secondary)' }}>15 min</p>
+                              <p style={{ margin: 0, paddingTop: 6, fontSize: 14, color: 'var(--c-text-secondary)' }}>{SESSION_DURATION_MIN} min</p>
                             </div>
 
                             <div className="advisor-field">
@@ -2919,7 +3049,7 @@ const AdvisorPortal = () => {
                               : 'Selecciona fecha y hora para ver el resumen'}
                           </div>
 
-                          <button type="button" className="advisor-action advisor-schedule-confirm" disabled={loadingAction || !schDate || !schTime} onClick={() => runLeadAction(() => handleScheduleLead(lead.id))}>
+                          <button type="button" className="advisor-action advisor-schedule-confirm" disabled={loadingAction || !schDate || !schTime || !scheduleDraft.session_holder_id} onClick={() => runLeadAction(() => handleScheduleLead(lead.id))}>
                             {loadingAction ? 'Creando evento…' : <><IcoCalendar /> Confirmar y crear Google Meet</>}
                           </button>
                         </motion.div>
@@ -3536,6 +3666,175 @@ const AdvisorPortal = () => {
             )}
           </>
         )}
+
+        {/* ─── CALENDARIO ──────────────────────────────────── */}
+        {view === 'calendario' && (() => {
+          const dayLabels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+          const monthLabels = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+          const weekDays: Date[] = Array.from({ length: 5 }, (_, i) => {
+            const d = new Date(calendarWeekStart);
+            d.setDate(d.getDate() + i);
+            return d;
+          });
+          const weekStartMs = new Date(calendarWeekStart).setHours(0, 0, 0, 0);
+          const weekEndMs = weekStartMs + 5 * 24 * 60 * 60 * 1000;
+
+          type Booking = { lead: LeadRecord; start: Date; end: Date; startMinutes: number };
+          const bookingsByHolderAndDay = new Map<string, Booking[]>();
+          const holdersById = new Map(sessionHolders.map((h) => [h.id, h]));
+
+          for (const lead of calendarSessions) {
+            if (!lead.cita_fecha_hora_inicio) continue;
+            const startD = new Date(lead.cita_fecha_hora_inicio);
+            if (Number.isNaN(startD.getTime())) continue;
+            const t = startD.getTime();
+            if (t < weekStartMs || t >= weekEndMs) continue;
+
+            let holderId = lead.consultor_id || '';
+            if (!holderId || !holdersById.has(holderId)) {
+              const match = sessionHolders.find(
+                (h) =>
+                  sessionHolderKey(h.nombre, h.apellido) ===
+                  sessionHolderKey(lead.consultor_nombre, lead.consultor_apellido)
+              );
+              if (!match) continue;
+              holderId = match.id;
+            }
+            const dayIdx = Math.floor((new Date(startD).setHours(0, 0, 0, 0) - weekStartMs) / (24 * 60 * 60 * 1000));
+            const endD = lead.cita_fecha_hora_fin
+              ? new Date(lead.cita_fecha_hora_fin)
+              : new Date(startD.getTime() + SESSION_DURATION_MIN * 60 * 1000);
+            const key = `${holderId}|${dayIdx}`;
+            const list = bookingsByHolderAndDay.get(key) || [];
+            list.push({
+              lead,
+              start: startD,
+              end: endD,
+              startMinutes: startD.getHours() * 60 + startD.getMinutes(),
+            });
+            bookingsByHolderAndDay.set(key, list);
+          }
+
+          const shiftWeek = (days: number) => {
+            const d = new Date(calendarWeekStart);
+            d.setDate(d.getDate() + days);
+            setCalendarWeekStart(d);
+          };
+          const goToday = () => {
+            const d = new Date();
+            d.setHours(0, 0, 0, 0);
+            const day = d.getDay();
+            const diffToMonday = day === 0 ? -6 : 1 - day;
+            d.setDate(d.getDate() + diffToMonday);
+            setCalendarWeekStart(d);
+          };
+          const weekLabel = `${calendarWeekStart.getDate()} ${monthLabels[calendarWeekStart.getMonth()]} – ${weekDays[4].getDate()} ${monthLabels[weekDays[4].getMonth()]} ${weekDays[4].getFullYear()}`;
+
+          return (
+            <>
+              <header className="advisor-header">
+                <div>
+                  <span className="advisor-kicker">Agenda</span>
+                  <h1 className="advisor-title">Calendario de sesiones</h1>
+                  <p className="advisor-copy">
+                    Sesiones de {SESSION_DURATION_MIN} min de {String(SESSION_HOURS_START).padStart(2, '0')}:00 a {String(SESSION_HOURS_END).padStart(2, '0')}:00 hrs para {SESSION_HOLDER_NAMES.map((h) => `${h.nombre} ${h.apellido}`).join(' y ')}.
+                  </p>
+                </div>
+                <div className="advisor-header-actions">
+                  <button className="advisor-icon-btn" type="button" onClick={loadCalendarSessions} disabled={calendarLoading} aria-label="Actualizar calendario">
+                    <span className={calendarLoading ? 'icon-spin' : ''} aria-hidden><IcoRefresh /></span>
+                    <span>Actualizar</span>
+                  </button>
+                </div>
+              </header>
+
+              <div className="advisor-calendar-toolbar">
+                <div className="advisor-calendar-nav">
+                  <button type="button" className="advisor-ghost" onClick={() => shiftWeek(-7)}>◀ Semana anterior</button>
+                  <button type="button" className="advisor-ghost" onClick={goToday}>Hoy</button>
+                  <button type="button" className="advisor-ghost" onClick={() => shiftWeek(7)}>Semana siguiente ▶</button>
+                </div>
+                <div className="advisor-calendar-week-label">{weekLabel}</div>
+              </div>
+
+              {calendarError && <p className="advisor-error">{calendarError}</p>}
+              {sessionHolders.length === 0 && !calendarLoading && (
+                <p className="advisor-error">
+                  No se encontraron consultoras habilitadas ({SESSION_HOLDER_NAMES.map((h) => `${h.nombre} ${h.apellido}`).join(' o ')}). Un administrador debe darlas de alta primero.
+                </p>
+              )}
+
+              <div className="advisor-calendar-grid">
+                <div className="advisor-calendar-corner">Hora</div>
+                {weekDays.map((d, i) => (
+                  <div key={`h-${i}`} className="advisor-calendar-day-head">
+                    <span className="advisor-calendar-day-name">{dayLabels[i]}</span>
+                    <span className="advisor-calendar-day-num">{d.getDate()} {monthLabels[d.getMonth()]}</span>
+                  </div>
+                ))}
+
+                {SESSION_TIME_SLOTS.map((slot) => {
+                  const [hh, mm] = slot.split(':').map(Number);
+                  const slotMinutes = hh * 60 + mm;
+                  return (
+                    <Fragment key={`row-${slot}`}>
+                      <div className="advisor-calendar-time">{slot}</div>
+                      {weekDays.map((_d, dayIdx) => {
+                        const cellBookings: Array<{ holder: ConsultorProfile; booking: Booking }> = [];
+                        for (const holder of sessionHolders) {
+                          const bookings = bookingsByHolderAndDay.get(`${holder.id}|${dayIdx}`) || [];
+                          for (const b of bookings) {
+                            if (b.startMinutes === slotMinutes) cellBookings.push({ holder, booking: b });
+                          }
+                        }
+                        return (
+                          <div key={`c-${slot}-${dayIdx}`} className="advisor-calendar-cell">
+                            {cellBookings.map(({ holder, booking }) => {
+                              const meet = booking.lead.cita_meet_link || booking.lead.meet_link;
+                              return (
+                                <div
+                                  key={booking.lead.id}
+                                  className={`advisor-calendar-booking holder-${normalizeName(holder.nombre)}`}
+                                  title={`${booking.lead.nombre} · ${holder.nombre} ${holder.apellido || ''}`}
+                                >
+                                  <div className="advisor-calendar-booking-time">
+                                    {booking.start.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
+                                  </div>
+                                  <div className="advisor-calendar-booking-name">{booking.lead.nombre}</div>
+                                  <div className="advisor-calendar-booking-holder">{holder.nombre}</div>
+                                  {meet && (
+                                    <a
+                                      href={meet}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="advisor-calendar-booking-meet"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <IcoVideo /> Meet
+                                    </a>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })}
+                    </Fragment>
+                  );
+                })}
+              </div>
+
+              <div className="advisor-calendar-legend">
+                {sessionHolders.map((h) => (
+                  <div key={h.id} className="advisor-calendar-legend-item">
+                    <span className={`advisor-calendar-legend-swatch holder-${normalizeName(h.nombre)}`}></span>
+                    <span>{h.nombre} {h.apellido}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          );
+        })()}
 
         {/* ─── CONSULTORES ─────────────────────────────────── */}
         {view === 'consultores' && (
