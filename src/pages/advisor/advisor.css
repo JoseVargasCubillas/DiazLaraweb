@@ -4054,3 +4054,25 @@
 .advisor-calendar-holder-chip.holder-jessica::before { background: #a855f7; }
 .advisor-calendar-holder-chip.holder-jazmin::before { background: #06b6d4; }
 .advisor-calendar-holder-chip.is-active::before { background: rgba(255,255,255,0.9); }
+
+/* --- Exportar .ics --- */
+.advisor-calendar-export {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  border: 1px solid var(--c-border, rgba(148,163,184,0.35));
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--c-surface, #fff);
+  cursor: pointer;
+  transition: transform .08s ease, background .15s ease;
+}
+.advisor-calendar-export:hover:not(:disabled) {
+  background: var(--c-surface-alt, #f8fafc);
+  transform: translateY(-1px);
+}
+.advisor-calendar-export:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

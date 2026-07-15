@@ -113,6 +113,7 @@ Las sesiones agendadas desde el panel siguen estas reglas — respétalas al edi
    La lista viene de `SESSION_HOLDER_NAMES`. El identificador real (`consultor_id`) se resuelve buscando por nombre + apellido en `consultores` (cargados con `GET /api/admin/consultores`).
 5. Cualquier consultor con sesión iniciada puede **agendar** un lead, pero al enviar `POST /leads-espera/:id/asignar-sesion` debe mandar `consultor_id` = ID de Jessica o Jazmin (no el propio). El backend crea el evento en el Google Calendar de esa persona.
 6. Jessica y Jazmin visualizan sus sesiones en la vista **Calendario**; ahí validan cuándo tomar cada llamada dentro del rango 9-16 hrs.
+7. Desde el Calendario se puede **exportar a `.ics`** (RFC 5545) las sesiones visibles (respetando filtro de consultora + rango semana/día). El archivo se importa en Google Calendar, Outlook o Apple Calendar. Todo se genera en el cliente; no requiere endpoint.
 
 Si en el futuro cambia el equipo de session holders, edita **solo** `SESSION_HOLDER_NAMES` en `AdvisorPortal.tsx`; el resto del código se adapta.
 
