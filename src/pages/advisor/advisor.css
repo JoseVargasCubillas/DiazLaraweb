@@ -3783,3 +3783,91 @@
     font-size: 11px;
   }
 }
+
+
+/* ─── Detalle de sesión en el calendario ──────────────── */
+.advisor-calendar-booking {
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+.advisor-calendar-booking:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+}
+.advisor-calendar-detail {
+  max-width: 560px;
+  width: 100%;
+}
+.advisor-calendar-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.advisor-calendar-detail-grid {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.advisor-calendar-detail-row {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 12px;
+  align-items: start;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--c-border, #e5e7eb);
+}
+.advisor-calendar-detail-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.advisor-calendar-detail-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--c-text-secondary, #6b7280);
+  font-size: 13px;
+}
+.advisor-calendar-detail-value {
+  color: var(--c-text-primary, #111);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.advisor-calendar-detail-value a {
+  color: var(--c-accent, #6366f1);
+  text-decoration: none;
+}
+.advisor-calendar-detail-value a:hover {
+  text-decoration: underline;
+}
+.advisor-calendar-detail-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.advisor-calendar-detail-meet {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.advisor-tag {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--c-surface-alt, #f3f4f6);
+  color: var(--c-text-primary, #111);
+  font-size: 12px;
+  font-weight: 500;
+}
+@media (max-width: 640px) {
+  .advisor-calendar-detail-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}

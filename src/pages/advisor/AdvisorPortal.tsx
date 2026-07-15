@@ -801,6 +801,8 @@ const AdvisorPortal = () => {
   const [calendarSessions, setCalendarSessions] = useState<LeadRecord[]>([]);
   const [calendarError, setCalendarError] = useState<string | null>(null);
   const [calendarLoading, setCalendarLoading] = useState(false);
+  const [calendarDetailLead, setCalendarDetailLead] = useState<LeadRecord | null>(null);
+  const [calendarCopyOk, setCalendarCopyOk] = useState(false);
   const [calendarWeekStart, setCalendarWeekStart] = useState<Date>(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -3792,10 +3794,12 @@ const AdvisorPortal = () => {
                             {cellBookings.map(({ holder, booking }) => {
                               const meet = booking.lead.cita_meet_link || booking.lead.meet_link;
                               return (
-                                <div
+                                <button
                                   key={booking.lead.id}
+                                  type="button"
                                   className={`advisor-calendar-booking holder-${normalizeName(holder.nombre)}`}
                                   title={`${booking.lead.nombre} · ${holder.nombre} ${holder.apellido || ''}`}
+                                  onClick={() => setCalendarDetailLead(booking.lead)}
                                 >
                                   <div className="advisor-calendar-booking-time">
                                     {booking.start.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
@@ -3813,7 +3817,7 @@ const AdvisorPortal = () => {
                                       <IcoVideo /> Meet
                                     </a>
                                   )}
-                                </div>
+                                </button>
                               );
                             })}
                           </div>
@@ -4212,6 +4216,143 @@ const AdvisorPortal = () => {
           await performRestoreHistoryClient(target);
         }}
       />
+
+      <AnimatePresence>
+        {calendarDetailLead && (() => {
+          const lead = calendarDetailLead;
+          const start = lead.cita_fecha_hora_inicio ? new Date(lead.cita_fecha_hora_inicio) : null;
+          const end = lead.cita_fecha_hora_fin ? new Date(lead.cita_fecha_hora_fin) : null;
+          const meet = lead.cita_meet_link || lead.meet_link;
+          const services = parseServicios(lead.servicios);
+          const holderName = [lead.consultor_nombre, lead.consultor_apellido].filter(Boolean).join(' ');
+          const closeModal = () => { setCalendarDetailLead(null); setCalendarCopyOk(false); };
+          const copyMeet = async () => {
+            if (!meet) return;
+            try {
+              await navigator.clipboard.writeText(meet);
+              setCalendarCopyOk(true);
+              window.setTimeout(() => setCalendarCopyOk(false), 1500);
+            } catch { /* ignore */ }
+          };
+          return (
+            <motion.div
+              className="ui-modal-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
+              onClick={closeModal}
+            >
+              <motion.div
+                className="ui-modal advisor-calendar-detail"
+                role="dialog"
+                aria-modal="true"
+                initial={{ opacity: 0, y: 16, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 8, scale: 0.97 }}
+                transition={{ type: 'spring', stiffness: 360, damping: 30 }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="advisor-calendar-detail-header">
+                  <div>
+                    <span className="advisor-kicker">Sesión agendada</span>
+                    <h2 className="ui-modal-title" style={{ margin: '4px 0 0' }}>{lead.nombre}</h2>
+                  </div>
+                  <button type="button" className="advisor-icon-action" aria-label="Cerrar" onClick={closeModal}>
+                    <IcoX />
+                  </button>
+                </div>
+
+                <div className="advisor-calendar-detail-grid">
+                  <div className="advisor-calendar-detail-row">
+                    <span className="advisor-calendar-detail-label"><IcoCalendar /> Fecha y hora</span>
+                    <span className="advisor-calendar-detail-value">
+                      {start ? start.toLocaleString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+                      {end && ` – ${end.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}`}
+                    </span>
+                  </div>
+
+                  <div className="advisor-calendar-detail-row">
+                    <span className="advisor-calendar-detail-label">Consultora asignada</span>
+                    <span className="advisor-calendar-detail-value">{holderName || '—'}{lead.consultor_email ? ` · ${lead.consultor_email}` : ''}</span>
+                  </div>
+
+                  <div className="advisor-calendar-detail-row">
+                    <span className="advisor-calendar-detail-label">Estado de la cita</span>
+                    <span className="advisor-calendar-detail-value">{lead.cita_estado || 'confirmada'}</span>
+                  </div>
+
+                  <div className="advisor-calendar-detail-row">
+                    <span className="advisor-calendar-detail-label">Contacto</span>
+                    <span className="advisor-calendar-detail-value">
+                      <a href={`mailto:${lead.email}`}>{lead.email}</a>
+                      {lead.telefono_whatsapp && (
+                        <>
+                          {' · '}
+                          <a
+                            href={`https://wa.me/${lead.telefono_whatsapp.replace(/[^\d]/g, '')}`}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            {lead.telefono_whatsapp}
+                          </a>
+                        </>
+                      )}
+                    </span>
+                  </div>
+
+                  {(lead.empresa || lead.puesto) && (
+                    <div className="advisor-calendar-detail-row">
+                      <span className="advisor-calendar-detail-label">Empresa</span>
+                      <span className="advisor-calendar-detail-value">
+                        {[lead.empresa, lead.puesto].filter(Boolean).join(' · ') || '—'}
+                      </span>
+                    </div>
+                  )}
+
+                  {services.length > 0 && (
+                    <div className="advisor-calendar-detail-row">
+                      <span className="advisor-calendar-detail-label">Servicios de interés</span>
+                      <span className="advisor-calendar-detail-value advisor-calendar-detail-tags">
+                        {services.map((s) => (
+                          <span key={s} className="advisor-tag">{s}</span>
+                        ))}
+                      </span>
+                    </div>
+                  )}
+
+                  {lead.cita_notas_cliente && (
+                    <div className="advisor-calendar-detail-row">
+                      <span className="advisor-calendar-detail-label">Notas internas</span>
+                      <span className="advisor-calendar-detail-value">{lead.cita_notas_cliente}</span>
+                    </div>
+                  )}
+
+                  {meet && (
+                    <div className="advisor-calendar-detail-row">
+                      <span className="advisor-calendar-detail-label"><IcoVideo /> Google Meet</span>
+                      <span className="advisor-calendar-detail-value advisor-calendar-detail-meet">
+                        <a href={meet} target="_blank" rel="noreferrer" className="advisor-action advisor-action-primary">
+                          <IcoVideo /> Unirse
+                        </a>
+                        <button type="button" className="advisor-ghost" onClick={copyMeet}>
+                          {calendarCopyOk ? '✓ Copiado' : 'Copiar link'}
+                        </button>
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="ui-modal-actions">
+                  <button type="button" className="ui-modal-btn ui-modal-btn-ghost" onClick={closeModal}>
+                    Cerrar
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          );
+        })()}
+      </AnimatePresence>
 
       <AnimatePresence>
         {changePasswordTarget && (
