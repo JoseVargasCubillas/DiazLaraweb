@@ -1340,6 +1340,11 @@ const AdvisorPortal = () => {
       loadCalendarSessions();
       loadConsultores();
     }
+    // También precargamos sesiones al entrar a Leads para poder marcar slots
+    // ocupados en el formulario de agendar (sin bloquear la carga de leads).
+    if (view === 'leads' && token) {
+      loadCalendarSessions();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, isSuperAdmin]);
 
@@ -1564,6 +1569,32 @@ const AdvisorPortal = () => {
       }));
       throw new Error('Horario fuera de la ventana permitida.');
     }
+    // Bloquear si ya hay otra sesión activa a la misma hora con la misma consultora.
+    const conflict = calendarSessions.find((s) => {
+      if (s.id === leadId) return false;
+      if (s.cita_estado === 'cancelada') return false;
+      if (!s.cita_fecha_hora_inicio) return false;
+      const sd = new Date(s.cita_fecha_hora_inicio);
+      if (Number.isNaN(sd.getTime())) return false;
+      if (sd.getTime() !== start.getTime()) return false;
+      let hId = s.consultor_id || '';
+      if (!hId) {
+        const match = sessionHolders.find(
+          (h) =>
+            sessionHolderKey(h.nombre, h.apellido) ===
+            sessionHolderKey(s.consultor_nombre, s.consultor_apellido)
+        );
+        if (match) hId = match.id;
+      }
+      return hId === draft.session_holder_id;
+    });
+    if (conflict) {
+      setScheduleErrors((prev) => ({
+        ...prev,
+        [leadId]: 'Ese slot ya está ocupado por otra sesión. Elige otra hora.',
+      }));
+      throw new Error('Slot ocupado.');
+    }
     const end = new Date(start.getTime() + SESSION_DURATION_MIN * 60 * 1000);
     const res = await fetch(getAdminUrl(`/api/admin/leads-espera/${leadId}/asignar-sesion`), {
       method: 'POST',
@@ -1595,6 +1626,8 @@ const AdvisorPortal = () => {
     setExpandedLeadId(null);
     await loadLeads();
     await loadStats();
+    // Refresca calendario en background para reflejar el nuevo slot como ocupado.
+    loadCalendarSessions();
   };
 
   const updateScheduleDraft = (leadId: string, patch: Partial<ScheduleDraft>) => {
@@ -3021,6 +3054,31 @@ const AdvisorPortal = () => {
                   const schTime = scheduleDraft.fecha_hora_inicio.length > 10 ? scheduleDraft.fecha_hora_inicio.slice(11, 16) : '';
                   const todayStr = new Date().toISOString().slice(0, 10);
                   const resolvedMeetLink = meetLinks[lead.id] || lead.cita_meet_link || lead.meet_link;
+                  // Slots ya ocupados por la consultora seleccionada en la fecha elegida (excluyendo canceladas y esta misma cita).
+                  const bookedSlots = new Set<string>();
+                  if (scheduleDraft.session_holder_id && schDate) {
+                    for (const s of calendarSessions) {
+                      if (s.id === lead.id) continue;
+                      if (s.cita_estado === 'cancelada') continue;
+                      if (!s.cita_fecha_hora_inicio) continue;
+                      const sd = new Date(s.cita_fecha_hora_inicio);
+                      if (Number.isNaN(sd.getTime())) continue;
+                      const sDate = `${sd.getFullYear()}-${String(sd.getMonth() + 1).padStart(2, '0')}-${String(sd.getDate()).padStart(2, '0')}`;
+                      if (sDate !== schDate) continue;
+                      // Resolver holder de la sesión.
+                      let hId = s.consultor_id || '';
+                      if (!hId) {
+                        const match = sessionHolders.find(
+                          (h) =>
+                            sessionHolderKey(h.nombre, h.apellido) ===
+                            sessionHolderKey(s.consultor_nombre, s.consultor_apellido)
+                        );
+                        if (match) hId = match.id;
+                      }
+                      if (hId !== scheduleDraft.session_holder_id) continue;
+                      bookedSlots.add(`${String(sd.getHours()).padStart(2, '0')}:${String(sd.getMinutes()).padStart(2, '0')}`);
+                    }
+                  }
 
                   return (
                     <motion.article
@@ -3198,8 +3256,20 @@ const AdvisorPortal = () => {
                                 })}
                               >
                                 <option value="">Selecciona hora…</option>
-                                {SESSION_TIME_SLOTS.map((t) => <option key={t} value={t}>{t}</option>)}
+                                {SESSION_TIME_SLOTS.map((t) => {
+                                  const taken = bookedSlots.has(t);
+                                  return (
+                                    <option key={t} value={t} disabled={taken}>
+                                      {t}{taken ? ' — ocupado' : ''}
+                                    </option>
+                                  );
+                                })}
                               </select>
+                              {scheduleDraft.session_holder_id && schDate && bookedSlots.size > 0 && (
+                                <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--c-text-secondary, #64748b)' }}>
+                                  {bookedSlots.size} slot{bookedSlots.size === 1 ? '' : 's'} ya ocupado{bookedSlots.size === 1 ? '' : 's'} ese día.
+                                </p>
+                              )}
                             </div>
 
                             <div className="advisor-field">
