@@ -842,7 +842,20 @@ const AdvisorPortal = () => {
       );
   }, [calendarSessions, nowTick]);
 
-  // Toast la primera vez que aparece una sesión próxima.
+  // Sesiones agendadas para hoy (para el badge del tab y el KPI del calendario).
+  const todaySessionsCount = useMemo(() => {
+    const start = new Date(nowTick);
+    start.setHours(0, 0, 0, 0);
+    const startMs = start.getTime();
+    const endMs = startMs + 24 * 60 * 60 * 1000;
+    return calendarSessions.filter((l) => {
+      if (!l.cita_fecha_hora_inicio) return false;
+      const t = new Date(l.cita_fecha_hora_inicio).getTime();
+      if (Number.isNaN(t)) return false;
+      return t >= startMs && t < endMs;
+    }).length;
+  }, [calendarSessions, nowTick]);
+
   useEffect(() => {
     for (const lead of upcomingSessions) {
       if (notifiedSessionsRef.current.has(lead.id)) continue;
@@ -2926,6 +2939,11 @@ const AdvisorPortal = () => {
             </button>
             <button type="button" className={`advisor-nav-tab ${view === 'calendario' ? 'active' : ''}`} onClick={() => setView('calendario')}>
               Calendario
+              {todaySessionsCount > 0 && (
+                <span className="advisor-nav-badge" title={`${todaySessionsCount} sesion${todaySessionsCount === 1 ? '' : 'es'} hoy`}>
+                  {todaySessionsCount}
+                </span>
+              )}
             </button>
             {isSuperAdmin && (
               <button type="button" className={`advisor-nav-tab ${view === 'consultores' ? 'active' : ''}`} onClick={() => setView('consultores')}>
@@ -4084,6 +4102,24 @@ const AdvisorPortal = () => {
             bookingsByHolderAndDay.set(key, list);
           }
 
+          // KPIs de las sesiones visibles en el rango (respetando filtro de holder).
+          const visibleBookings: Booking[] = [];
+          for (const list of bookingsByHolderAndDay.values()) visibleBookings.push(...list);
+          const kpis = {
+            total: visibleBookings.length,
+            tomada: 0,
+            no_show: 0,
+            cancelada: 0,
+            pendiente: 0,
+          };
+          for (const b of visibleBookings) {
+            const st = (b.lead.cita_estado || '').toLowerCase();
+            if (st === 'tomada') kpis.tomada++;
+            else if (st === 'no_show') kpis.no_show++;
+            else if (st === 'cancelada') kpis.cancelada++;
+            else kpis.pendiente++;
+          }
+
           const shiftRange = (days: number) => {
             const d = new Date(calendarWeekStart);
             d.setDate(d.getDate() + days);
@@ -4208,6 +4244,39 @@ const AdvisorPortal = () => {
                   No se encontraron consultoras habilitadas ({SESSION_HOLDER_NAMES.map((h) => `${h.nombre} ${h.apellido}`).join(' o ')}). Un administrador debe darlas de alta primero.
                 </p>
               )}
+
+              <div className="advisor-calendar-kpis" role="group" aria-label="Resumen del rango visible">
+                <div className="advisor-calendar-kpi is-total">
+                  <span className="advisor-calendar-kpi-num">{kpis.total}</span>
+                  <span className="advisor-calendar-kpi-label">{isWeek ? 'Semana' : 'Día'}</span>
+                </div>
+                <div className="advisor-calendar-kpi is-tomada">
+                  <span className="advisor-calendar-kpi-num">{kpis.tomada}</span>
+                  <span className="advisor-calendar-kpi-label">Tomadas</span>
+                </div>
+                <div className="advisor-calendar-kpi is-pendiente">
+                  <span className="advisor-calendar-kpi-num">{kpis.pendiente}</span>
+                  <span className="advisor-calendar-kpi-label">Pendientes</span>
+                </div>
+                <div className="advisor-calendar-kpi is-no-show">
+                  <span className="advisor-calendar-kpi-num">{kpis.no_show}</span>
+                  <span className="advisor-calendar-kpi-label">No-show</span>
+                </div>
+                <div className="advisor-calendar-kpi is-cancelada">
+                  <span className="advisor-calendar-kpi-num">{kpis.cancelada}</span>
+                  <span className="advisor-calendar-kpi-label">Canceladas</span>
+                </div>
+                {kpis.total > 0 && (
+                  <div className="advisor-calendar-kpi is-rate" title="Tasa de asistencia = tomadas / (tomadas + no-show)">
+                    <span className="advisor-calendar-kpi-num">
+                      {kpis.tomada + kpis.no_show === 0
+                        ? '—'
+                        : `${Math.round((kpis.tomada / (kpis.tomada + kpis.no_show)) * 100)}%`}
+                    </span>
+                    <span className="advisor-calendar-kpi-label">Asistencia</span>
+                  </div>
+                )}
+              </div>
 
               <div className="advisor-calendar-grid" style={gridColsStyle}>
                 <div className="advisor-calendar-corner">Hora</div>

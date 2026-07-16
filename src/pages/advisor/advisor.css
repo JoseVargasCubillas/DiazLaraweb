@@ -4124,3 +4124,64 @@
   outline-offset: 1px;
   animation: advisor-upcoming-pulse 1.5s infinite;
 }
+
+/* --- Badge en el tab de navegacion --- */
+.advisor-nav-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.advisor-nav-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* --- KPIs del calendario --- */
+.advisor-calendar-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+  margin: 8px 0 16px;
+}
+.advisor-calendar-kpi {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--c-border, rgba(148,163,184,0.35));
+  background: var(--c-surface, #fff);
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.advisor-calendar-kpi:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(15,23,42,0.06); }
+.advisor-calendar-kpi-num {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--c-text-primary, #0f172a);
+}
+.advisor-calendar-kpi-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--c-text-secondary, #64748b);
+  font-weight: 600;
+}
+.advisor-calendar-kpi.is-total { border-left: 4px solid #7c3aed; }
+.advisor-calendar-kpi.is-tomada { border-left: 4px solid #16a34a; }
+.advisor-calendar-kpi.is-pendiente { border-left: 4px solid #0ea5e9; }
+.advisor-calendar-kpi.is-no-show { border-left: 4px solid #f59e0b; }
+.advisor-calendar-kpi.is-cancelada { border-left: 4px solid #ef4444; }
+.advisor-calendar-kpi.is-rate { border-left: 4px solid #06b6d4; }
