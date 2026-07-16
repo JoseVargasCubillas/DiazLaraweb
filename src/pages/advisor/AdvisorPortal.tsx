@@ -4737,6 +4737,50 @@ const AdvisorPortal = () => {
                 </div>
 
                 <div className="ui-modal-actions">
+                  <button
+                    type="button"
+                    className="ui-modal-btn ui-modal-btn-primary"
+                    onClick={() => {
+                      // Pre-llenar el draft con los valores actuales y abrir el
+                      // formulario de agendar del lead en la vista Leads.
+                      let localDateTime = '';
+                      if (start && !Number.isNaN(start.getTime())) {
+                        const yyyy = start.getFullYear();
+                        const mm = String(start.getMonth() + 1).padStart(2, '0');
+                        const dd = String(start.getDate()).padStart(2, '0');
+                        const hh = String(start.getHours()).padStart(2, '0');
+                        const mi = String(start.getMinutes()).padStart(2, '0');
+                        localDateTime = `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
+                      }
+                      // Resolver holder_id (puede venir vacío en el lead)
+                      let holderId = lead.consultor_id || '';
+                      if (!holderId) {
+                        const match = sessionHolders.find(
+                          (h) =>
+                            sessionHolderKey(h.nombre, h.apellido) ===
+                            sessionHolderKey(lead.consultor_nombre, lead.consultor_apellido)
+                        );
+                        if (match) holderId = match.id;
+                      }
+                      setScheduleDrafts((prev) => ({
+                        ...prev,
+                        [lead.id]: {
+                          fecha_hora_inicio: localDateTime,
+                          duracion: SESSION_DURATION_MIN,
+                          estatus_comercial: (lead.estatus_comercial || 'prospecto') as EstatusComercial,
+                          notas_cliente: lead.cita_notas_cliente || '',
+                          session_holder_id: holderId,
+                        },
+                      }));
+                      setActiveEstado('sesion_agendada');
+                      setView('leads');
+                      setExpandedLeadId(lead.id);
+                      closeModal();
+                      toast.info('Ajusta fecha u hora y confirma para reprogramar.');
+                    }}
+                  >
+                    <IcoCalendar /> Reprogramar
+                  </button>
                   <button type="button" className="ui-modal-btn ui-modal-btn-ghost" onClick={closeModal}>
                     Cerrar
                   </button>
