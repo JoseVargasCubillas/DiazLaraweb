@@ -806,12 +806,62 @@ const AdvisorPortal = () => {
   const [calendarViewMode, setCalendarViewMode] = useState<'week' | 'day'>('week');
   const [calendarHolderFilter, setCalendarHolderFilter] = useState<string>('all');
   const [nowTick, setNowTick] = useState<number>(() => Date.now());
+  // IDs de sesiones ya notificadas (para no repetir el toast).
+  const notifiedSessionsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
-    if (view !== 'calendario') return;
+    // Reloj global cada 60s: alimenta el resaltado "ahora" del calendario y
+    // las notificaciones de sesiones próximas.
     const id = window.setInterval(() => setNowTick(Date.now()), 60_000);
     return () => window.clearInterval(id);
-  }, [view]);
+  }, []);
+
+  // Precarga calendarSessions al login para poder detectar próximas sesiones.
+  useEffect(() => {
+    if (token) loadCalendarSessions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
+
+  // Sesiones que arrancan en los próximos 15 min (excluye canceladas / no-show / tomadas).
+  const upcomingSessions = useMemo(() => {
+    const now = nowTick;
+    const cutoff = now + 15 * 60 * 1000;
+    return calendarSessions
+      .filter((l) => {
+        if (!l.cita_fecha_hora_inicio) return false;
+        const s = new Date(l.cita_fecha_hora_inicio).getTime();
+        if (Number.isNaN(s)) return false;
+        if (s < now - 60_000 || s > cutoff) return false; // solo próximos 15 min
+        const estado = (l.cita_estado || '').toLowerCase();
+        if (estado === 'cancelada' || estado === 'no_show' || estado === 'tomada') return false;
+        return true;
+      })
+      .sort((a, b) =>
+        new Date(a.cita_fecha_hora_inicio!).getTime() -
+        new Date(b.cita_fecha_hora_inicio!).getTime()
+      );
+  }, [calendarSessions, nowTick]);
+
+  // Toast la primera vez que aparece una sesión próxima.
+  useEffect(() => {
+    for (const lead of upcomingSessions) {
+      if (notifiedSessionsRef.current.has(lead.id)) continue;
+      notifiedSessionsRef.current.add(lead.id);
+      const start = new Date(lead.cita_fecha_hora_inicio!);
+      const mins = Math.max(0, Math.round((start.getTime() - Date.now()) / 60_000));
+      const holder = [lead.consultor_nombre, lead.consultor_apellido].filter(Boolean).join(' ');
+      toast.info(
+        `Próxima sesión ${mins === 0 ? 'ahora' : `en ${mins} min`}: ${lead.nombre}${holder ? ' · ' + holder : ''}`
+      );
+    }
+    // Limpia el "notificado" cuando ya no aplica (para que si se reprograma vuelva a avisar).
+    const currentIds = new Set(upcomingSessions.map((l) => l.id));
+    for (const id of Array.from(notifiedSessionsRef.current)) {
+      if (!currentIds.has(id)) notifiedSessionsRef.current.delete(id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [upcomingSessions]);
+
   const [calendarWeekStart, setCalendarWeekStart] = useState<Date>(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -2927,6 +2977,53 @@ const AdvisorPortal = () => {
 
       <section className="advisor-panel">
 
+        {upcomingSessions.length > 0 && (
+          <div className="advisor-upcoming-banner" role="status" aria-live="polite">
+            <span className="advisor-upcoming-dot" aria-hidden />
+            <div className="advisor-upcoming-content">
+              <strong>Próxima sesión:</strong>{' '}
+              {upcomingSessions.slice(0, 2).map((lead, i) => {
+                const start = new Date(lead.cita_fecha_hora_inicio!);
+                const mins = Math.max(0, Math.round((start.getTime() - nowTick) / 60_000));
+                const holder = [lead.consultor_nombre, lead.consultor_apellido].filter(Boolean).join(' ');
+                const meet = lead.cita_meet_link || lead.meet_link;
+                return (
+                  <Fragment key={lead.id}>
+                    {i > 0 && ' · '}
+                    <button
+                      type="button"
+                      className="advisor-upcoming-link"
+                      onClick={() => { setCalendarDetailLead(lead); }}
+                    >
+                      {lead.nombre}{holder ? ` (${holder})` : ''} —{' '}
+                      {mins === 0 ? 'ahora' : `en ${mins} min`}
+                    </button>
+                    {meet && (
+                      <>
+                        {' '}
+                        <a
+                          href={meet}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="advisor-upcoming-meet"
+                          title="Unirse a Google Meet"
+                        >
+                          <IcoVideo /> Unirse
+                        </a>
+                      </>
+                    )}
+                  </Fragment>
+                );
+              })}
+              {upcomingSessions.length > 2 && (
+                <span className="advisor-upcoming-more">
+                  {' · +'}{upcomingSessions.length - 2} más
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* ─── LEADS ─────────────────────────────────────── */}
         {view === 'leads' && (
           <>
@@ -4162,11 +4259,12 @@ const AdvisorPortal = () => {
                             {cellBookings.map(({ holder, booking }) => {
                               const meet = booking.lead.cita_meet_link || booking.lead.meet_link;
                               const status = (booking.lead.cita_estado || '').toLowerCase();
+                              const isUpcoming = upcomingSessions.some((u) => u.id === booking.lead.id);
                               return (
                                 <button
                                   key={booking.lead.id}
                                   type="button"
-                                  className={`advisor-calendar-booking holder-${normalizeName(holder.nombre)} advisor-calendar-booking-status-${status || 'confirmada'}`}
+                                  className={`advisor-calendar-booking holder-${normalizeName(holder.nombre)} advisor-calendar-booking-status-${status || 'confirmada'} ${isUpcoming ? 'is-upcoming' : ''}`}
                                   title={`${booking.lead.nombre} · ${holder.nombre} ${holder.apellido || ''}${status ? ` · ${status}` : ''}`}
                                   onClick={() => setCalendarDetailLead(booking.lead)}
                                 >
