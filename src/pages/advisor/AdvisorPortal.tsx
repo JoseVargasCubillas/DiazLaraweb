@@ -1041,153 +1041,9 @@ const AdvisorPortal = () => {
     }
   };
 
-  // Exporta las sesiones visibles a un archivo .ics (RFC 5545) importable en
-  // Google Calendar / Outlook / Apple Calendar. Considera el filtro por
-  // consultora y el rango visible (semana o día).
-  const handleExportIcs = () => {
-    if (calendarSessions.length === 0) {
-      toast.error('No hay sesiones para exportar en el rango actual.');
-      return;
-    }
-    const isWeek = calendarViewMode === 'week';
-    const rangeDays: Date[] = isWeek
-      ? Array.from({ length: 5 }, (_, i) => {
-          const d = new Date(calendarWeekStart);
-          d.setDate(d.getDate() + i);
-          return d;
-        })
-      : [new Date(calendarWeekStart)];
-    const rangeStartMs = new Date(rangeDays[0]).setHours(0, 0, 0, 0);
-    const rangeEndMs = rangeStartMs + rangeDays.length * 24 * 60 * 60 * 1000;
-
-    const holdersById = new Map(sessionHolders.map((h) => [h.id, h]));
-    const filtered = calendarSessions.filter((lead) => {
-      if (!lead.cita_fecha_hora_inicio) return false;
-      const startD = new Date(lead.cita_fecha_hora_inicio);
-      if (Number.isNaN(startD.getTime())) return false;
-      const t = startD.getTime();
-      if (t < rangeStartMs || t >= rangeEndMs) return false;
-      let holderId = lead.consultor_id || '';
-      if (!holderId || !holdersById.has(holderId)) {
-        const match = sessionHolders.find(
-          (h) =>
-            sessionHolderKey(h.nombre, h.apellido) ===
-            sessionHolderKey(lead.consultor_nombre, lead.consultor_apellido)
-        );
-        if (!match) return false;
-        holderId = match.id;
-      }
-      if (calendarHolderFilter !== 'all' && holderId !== calendarHolderFilter) return false;
-      return true;
-    });
-
-    if (filtered.length === 0) {
-      toast.error('No hay sesiones en el rango visible para exportar.');
-      return;
-    }
-
-    // Formato UTC: YYYYMMDDTHHMMSSZ
-    const toIcsUtc = (d: Date) =>
-      d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
-    const escapeIcs = (s: string) =>
-      String(s ?? '')
-        .replace(/\\/g, '\\\\')
-        .replace(/\n/g, '\\n')
-        .replace(/,/g, '\\,')
-        .replace(/;/g, '\\;');
-    // Line folding a 75 octetos (aprox. 74 chars) según RFC 5545.
-    const foldLine = (line: string) => {
-      if (line.length <= 74) return line;
-      const parts: string[] = [];
-      let rest = line;
-      parts.push(rest.slice(0, 74));
-      rest = rest.slice(74);
-      while (rest.length > 73) {
-        parts.push(' ' + rest.slice(0, 73));
-        rest = rest.slice(73);
-      }
-      if (rest.length) parts.push(' ' + rest);
-      return parts.join('\r\n');
-    };
-
-    const now = toIcsUtc(new Date());
-    const lines: string[] = [
-      'BEGIN:VCALENDAR',
-      'VERSION:2.0',
-      'PRODID:-//DiazLara//Portal Consultor//ES',
-      'CALSCALE:GREGORIAN',
-      'METHOD:PUBLISH',
-      `X-WR-CALNAME:Sesiones Diaz Lara${calendarHolderFilter !== 'all' ? ' – ' + (holdersById.get(calendarHolderFilter)?.nombre ?? '') : ''}`,
-    ];
-
-    for (const lead of filtered) {
-      const start = new Date(lead.cita_fecha_hora_inicio!);
-      const end = lead.cita_fecha_hora_fin
-        ? new Date(lead.cita_fecha_hora_fin)
-        : new Date(start.getTime() + SESSION_DURATION_MIN * 60 * 1000);
-      const nombre = (lead.nombre ?? '').trim() || 'Lead';
-      const holderName = lead.consultor_nombre
-        ? `${lead.consultor_nombre} ${lead.consultor_apellido ?? ''}`.trim()
-        : (holdersById.get(lead.consultor_id ?? '')?.nombre ?? '');
-      const summary = `Sesión: ${nombre}${holderName ? ' · ' + holderName : ''}`;
-      const meetUrl = lead.meet_link || lead.cita_meet_link || '';
-      const descLines = [
-        `Lead: ${nombre}`,
-        lead.email ? `Email: ${lead.email}` : '',
-        lead.telefono_whatsapp ? `WhatsApp: ${lead.telefono_whatsapp}` : '',
-        lead.empresa ? `Empresa: ${lead.empresa}` : '',
-        lead.puesto ? `Puesto: ${lead.puesto}` : '',
-        holderName ? `Consultora: ${holderName}` : '',
-        lead.cita_estado ? `Estado: ${lead.cita_estado}` : '',
-        lead.cita_notas_cliente ? `Notas: ${lead.cita_notas_cliente}` : '',
-        meetUrl ? `Meet: ${meetUrl}` : '',
-      ].filter(Boolean);
-      const uid = `lead-${lead.id}@diazlara`;
-      const evt: string[] = [
-        'BEGIN:VEVENT',
-        `UID:${uid}`,
-        `DTSTAMP:${now}`,
-        `DTSTART:${toIcsUtc(start)}`,
-        `DTEND:${toIcsUtc(end)}`,
-        `SUMMARY:${escapeIcs(summary)}`,
-        `DESCRIPTION:${escapeIcs(descLines.join('\n'))}`,
-      ];
-      if (meetUrl) {
-        evt.push(`URL:${escapeIcs(meetUrl)}`);
-        evt.push(`LOCATION:${escapeIcs(meetUrl)}`);
-      }
-      if (lead.cita_estado === 'cancelada') evt.push('STATUS:CANCELLED');
-      else if (lead.cita_estado === 'tomada') evt.push('STATUS:CONFIRMED');
-      else evt.push('STATUS:TENTATIVE');
-      evt.push('END:VEVENT');
-      for (const l of evt) lines.push(foldLine(l));
-    }
-    lines.push('END:VCALENDAR');
-
-    const ics = lines.join('\r\n');
-    const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    const first = rangeDays[0];
-    const last = rangeDays[rangeDays.length - 1];
-    const stamp = (d: Date) =>
-      `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
-    const filenameHolder =
-      calendarHolderFilter !== 'all'
-        ? '-' + normalizeName(holdersById.get(calendarHolderFilter)?.nombre ?? '')
-        : '';
-    a.href = url;
-    a.download = `sesiones${filenameHolder}-${stamp(first)}${isWeek ? '-' + stamp(last) : ''}.ics`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-    toast.success(`Se exportaron ${filtered.length} sesion${filtered.length === 1 ? '' : 'es'}.`);
-  };
-
   // PATCH cita_estado. El backend debe exponer:
   //   PATCH /api/admin/leads-espera/:id/cita-estado  body: { estado }
-  // Fallbacks: POST /leads-espera/:id/cita-estado y PATCH /leads-espera/:id (con { cita_estado }).
+  //   Fallbacks: POST /leads-espera/:id/cita-estado y PATCH /leads-espera/:id (con { cita_estado }).
   const handleUpdateCitaEstado = async (leadId: string, estado: string) => {
     if (!authHeaders) return;
     setCalendarError(null);
@@ -4227,21 +4083,17 @@ const AdvisorPortal = () => {
                   </div>
                 )}
                 <div className="advisor-calendar-week-label">{rangeLabel}</div>
-                <button
-                  type="button"
-                  className="advisor-ghost advisor-calendar-export"
-                  onClick={handleExportIcs}
-                  disabled={calendarLoading || calendarSessions.length === 0}
-                  title="Descargar las sesiones visibles en formato .ics para Google Calendar u Outlook"
-                >
-                  ⬇ Exportar .ics
-                </button>
               </div>
 
               {calendarError && <p className="advisor-error">{calendarError}</p>}
               {sessionHolders.length === 0 && !calendarLoading && (
                 <p className="advisor-error">
                   No se encontraron consultoras habilitadas ({SESSION_HOLDER_NAMES.map((h) => `${h.nombre} ${h.apellido}`).join(' o ')}). Un administrador debe darlas de alta primero.
+                </p>
+              )}
+              {!calendarLoading && !calendarError && sessionHolders.length > 0 && calendarSessions.length === 0 && (
+                <p className="advisor-empty">
+                  Todavía no hay sesiones agendadas para pintar. En cuanto un consultor agende una sesión con {SESSION_HOLDER_NAMES.map((h) => h.nombre).join(' o ')} aparecerá aquí.
                 </p>
               )}
 
