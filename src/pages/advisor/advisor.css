@@ -4179,9 +4179,137 @@
   color: var(--c-text-secondary, #64748b);
   font-weight: 600;
 }
-.advisor-calendar-kpi.is-total { border-left: 4px solid #7c3aed; }
-.advisor-calendar-kpi.is-tomada { border-left: 4px solid #16a34a; }
-.advisor-calendar-kpi.is-pendiente { border-left: 4px solid #0ea5e9; }
-.advisor-calendar-kpi.is-no-show { border-left: 4px solid #f59e0b; }
-.advisor-calendar-kpi.is-cancelada { border-left: 4px solid #ef4444; }
-.advisor-calendar-kpi.is-rate { border-left: 4px solid #06b6d4; }
+.advisor-calendar-kpi.is-total { border-left: 4px solid #a78bfa; }
+.advisor-calendar-kpi.is-tomada { border-left: 4px solid #34d399; }
+.advisor-calendar-kpi.is-pendiente { border-left: 4px solid #38bdf8; }
+.advisor-calendar-kpi.is-no-show { border-left: 4px solid #fbbf24; }
+.advisor-calendar-kpi.is-cancelada { border-left: 4px solid #f87171; }
+.advisor-calendar-kpi.is-rate { border-left: 4px solid #22d3ee; }
+
+/* ==========================================================================
+   Dark-shell theme tokens for calendar & filter surfaces
+   El portal de asesores siempre corre sobre .advisor-shell (fondo navy).
+   Los estilos de calendario (KPIs, chips, grid, toolbar…) fueron pensados
+   con variables --c-* que caían a un fallback blanco. Aquí definimos esos
+   tokens una sola vez para que todo herede colores legibles sobre navy.
+   ========================================================================== */
+.advisor-shell {
+  --c-surface:        rgba(255, 255, 255, 0.06);
+  --c-surface-alt:    rgba(255, 255, 255, 0.10);
+  --c-surface-strong: rgba(255, 255, 255, 0.14);
+  --c-border:         rgba(255, 255, 255, 0.14);
+  --c-border-strong:  rgba(255, 255, 255, 0.22);
+  --c-text-primary:   #f5f7fa;
+  --c-text-secondary: rgba(240, 244, 252, 0.72);
+  --c-text-muted:     rgba(240, 244, 252, 0.52);
+  --c-accent:         #818cf8;
+}
+
+/* El grid del calendario se dibuja a base de "líneas" via gap + background.
+   Con superficies translúcidas oscuras las celdas se ven correctamente. */
+.advisor-shell .advisor-calendar-grid {
+  background: var(--c-border-strong);
+  border-color: var(--c-border-strong);
+}
+.advisor-shell .advisor-calendar-corner,
+.advisor-shell .advisor-calendar-day-head,
+.advisor-shell .advisor-calendar-time,
+.advisor-shell .advisor-calendar-cell {
+  background: rgba(15, 23, 42, 0.55);
+}
+.advisor-shell .advisor-calendar-day-name,
+.advisor-shell .advisor-calendar-week-label {
+  color: var(--c-text-primary);
+}
+.advisor-shell .advisor-calendar-day-num,
+.advisor-shell .advisor-calendar-time,
+.advisor-shell .advisor-calendar-corner {
+  color: var(--c-text-secondary);
+}
+.advisor-shell .advisor-calendar-cell.is-today-col {
+  background: rgba(129, 140, 248, 0.12);
+}
+.advisor-shell .advisor-calendar-cell.is-now-cell {
+  background: rgba(129, 140, 248, 0.24);
+  box-shadow: inset 0 2px 0 0 #a5b4fc;
+}
+.advisor-shell .advisor-calendar-day-head.is-today {
+  background: linear-gradient(180deg, rgba(129, 140, 248, 0.28), rgba(15, 23, 42, 0.55));
+}
+.advisor-shell .advisor-calendar-time.is-now {
+  color: #a5b4fc;
+}
+
+/* KPIs */
+.advisor-shell .advisor-calendar-kpi {
+  background: var(--c-surface);
+  border-color: var(--c-border);
+}
+.advisor-shell .advisor-calendar-kpi-num {
+  color: var(--c-text-primary);
+}
+.advisor-shell .advisor-calendar-kpi-label {
+  color: var(--c-text-secondary);
+}
+.advisor-shell .advisor-calendar-kpi:hover {
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+/* Segment control Semana / Día */
+.advisor-shell .advisor-calendar-mode-switch {
+  background: var(--c-surface);
+  border-color: var(--c-border);
+}
+.advisor-shell .advisor-calendar-mode {
+  color: var(--c-text-secondary);
+}
+.advisor-shell .advisor-calendar-mode:hover:not(.is-active) {
+  color: var(--c-text-primary);
+  background: var(--c-surface-alt);
+}
+.advisor-shell .advisor-calendar-mode.is-active {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+}
+
+/* Chips filtro por consultora */
+.advisor-shell .advisor-calendar-holder-chip {
+  background: var(--c-surface);
+  border-color: var(--c-border);
+  color: var(--c-text-secondary);
+}
+.advisor-shell .advisor-calendar-holder-chip:hover {
+  color: var(--c-text-primary);
+  background: var(--c-surface-alt);
+}
+.advisor-shell .advisor-calendar-holder-chip.is-active {
+  color: #fff;
+}
+
+/* Vista detalle */
+.advisor-shell .advisor-calendar-detail {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: 12px;
+}
+.advisor-shell .advisor-calendar-detail-label {
+  color: var(--c-text-muted);
+}
+.advisor-shell .advisor-calendar-detail-value {
+  color: var(--c-text-primary);
+}
+.advisor-shell .advisor-calendar-detail-row {
+  border-color: var(--c-border);
+}
+
+/* Mensaje vacío */
+.advisor-empty {
+  color: var(--c-text-secondary, rgba(240, 244, 252, 0.72));
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed rgba(255, 255, 255, 0.16);
+  padding: 14px 18px;
+  border-radius: 12px;
+  margin: 8px 0 16px;
+  font-size: 14px;
+}
+
