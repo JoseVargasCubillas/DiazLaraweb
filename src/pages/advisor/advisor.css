@@ -4313,3 +4313,106 @@
   font-size: 14px;
 }
 
+
+
+/* ── UI polish v2 · Panel asesores ───────────────────────── */
+
+.advisor-auto-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--c-border, rgba(148,163,184,0.35));
+  background: color-mix(in srgb, currentColor 6%, transparent);
+  color: var(--c-text-secondary, #64748b);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  user-select: none;
+  cursor: default;
+}
+.advisor-auto-refresh svg { width: 14px; height: 14px; opacity: 0.85; }
+.advisor-shell .advisor-auto-refresh {
+  background: rgba(255,255,255,0.04);
+  color: #cbd5e1;
+  border-color: rgba(148,163,184,0.28);
+}
+
+.advisor-danger,
+.advisor-client-expand.advisor-danger,
+.advisor-action.advisor-danger {
+  color: #b91c1c !important;
+  border-color: rgba(220, 38, 38, 0.35) !important;
+  background: rgba(254, 226, 226, 0.55) !important;
+}
+.advisor-danger:hover,
+.advisor-client-expand.advisor-danger:hover,
+.advisor-action.advisor-danger:hover {
+  background: rgba(254, 202, 202, 0.75) !important;
+  border-color: rgba(220, 38, 38, 0.55) !important;
+}
+.advisor-shell .advisor-danger,
+.advisor-shell .advisor-client-expand.advisor-danger,
+.advisor-shell .advisor-action.advisor-danger {
+  color: #fca5a5 !important;
+  border-color: rgba(248,113,113,0.4) !important;
+  background: rgba(127,29,29,0.22) !important;
+}
+.advisor-shell .advisor-danger:hover,
+.advisor-shell .advisor-client-expand.advisor-danger:hover,
+.advisor-shell .advisor-action.advisor-danger:hover {
+  background: rgba(153,27,27,0.4) !important;
+  border-color: rgba(248,113,113,0.65) !important;
+}
+
+/* Suaviza filtros/chips en dark */
+.advisor-shell .advisor-filter {
+  background: rgba(255,255,255,0.04);
+  color: #cbd5e1;
+  border: 1px solid rgba(148,163,184,0.25);
+  transition: background 180ms ease, border-color 180ms ease, color 180ms ease;
+  cursor: pointer;
+}
+.advisor-shell .advisor-filter:hover {
+  background: rgba(255,255,255,0.09);
+  color: #f1f5f9;
+}
+.advisor-shell .advisor-filter.active {
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 6px 18px -8px rgba(79,70,229,0.6);
+}
+
+/* Cursor pointer en todos los clickeables clave */
+.advisor-nav-tab,
+.advisor-stat,
+.advisor-filter,
+.advisor-client-card,
+.advisor-client-expand,
+.advisor-action,
+.advisor-submit,
+.advisor-ghost,
+.advisor-icon-btn,
+.advisor-theme-toggle {
+  cursor: pointer;
+}
+.advisor-submit:disabled,
+.advisor-action:disabled,
+.advisor-ghost:disabled,
+.advisor-icon-btn:disabled,
+.advisor-client-expand:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* Focus rings visibles */
+.advisor-shell button:focus-visible,
+.advisor-shell input:focus-visible,
+.advisor-shell select:focus-visible,
+.advisor-shell textarea:focus-visible {
+  outline: 2px solid #818cf8;
+  outline-offset: 2px;
+  border-radius: 8px;
+}

@@ -750,6 +750,7 @@ const AdvisorPortal = () => {
   const [historyFilterOpen, setHistoryFilterOpen] = useState(false);
   const [confirmArchiveClient, setConfirmArchiveClient] = useState<ManualClientRecord | null>(null);
   const [confirmRestoreHistory, setConfirmRestoreHistory] = useState<HistoryRecord | null>(null);
+  const [confirmDeleteHistory, setConfirmDeleteHistory] = useState<HistoryRecord | null>(null);
   const [selectedClient, setSelectedClient] = useState<ManualClientRecord | null>(null);
   const [editingClient, setEditingClient] = useState(false);
   const [editClientDraft, setEditClientDraft] = useState<ClientEditDraft | null>(null);
@@ -1272,6 +1273,30 @@ const AdvisorPortal = () => {
       setView('leads');
     }
   }, [profile, isSuperAdmin, view]);
+
+  // ── Auto-refresh cada 3s (solo mientras el tab está visible) ────────
+  useEffect(() => {
+    if (!token) return;
+    const tick = () => {
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+      if (view === 'leads') {
+        loadLeads(token, activeEstado).catch(() => {});
+        loadStats(token).catch(() => {});
+        loadCalendarSessions().catch(() => {});
+      } else if (view === 'historico_clientes') {
+        loadClientHistory().catch(() => {});
+      } else if (view === 'clientes_consultor') {
+        loadManualClients().catch(() => {});
+      } else if (view === 'calendario') {
+        loadCalendarSessions().catch(() => {});
+      } else if (view === 'consultores' && isSuperAdmin) {
+        loadConsultores().catch(() => {});
+      }
+    };
+    const id = window.setInterval(tick, 3000);
+    return () => window.clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, view, activeEstado, isSuperAdmin]);
 
   // ── Auth handlers ──────────────────────────────────────────
   const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -2098,6 +2123,31 @@ const AdvisorPortal = () => {
     }
   };
 
+  const performDeleteHistory = async (history: HistoryRecord) => {
+    if (!authHeaders) return;
+    try {
+      setLoading(true);
+      const res = await fetch(getAdminUrl(`/api/admin/historico-clientes/${history.id}`), {
+        method: 'DELETE',
+        headers: authHeaders,
+      });
+      if (!res.ok && res.status !== 204) {
+        const payload = await res.json().catch(() => null);
+        throw new Error(payload?.error?.message || payload?.error || 'No fue posible eliminar el registro.');
+      }
+      toast.success(`Registro de "${history.nombre || history.email}" eliminado.`);
+      setSelectedHistory(null);
+      setExpandedHistoryId(null);
+      await loadClientHistory();
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Error al eliminar el registro.';
+      toast.error(msg);
+      setClientHistoryError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // ── Change password ────────────────────────────────────────
   const handleChangePassword = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -2785,11 +2835,14 @@ const AdvisorPortal = () => {
           </a>
           <div className="advisor-nav-tabs">
             <button type="button" className={`advisor-nav-tab ${view === 'leads' ? 'active' : ''}`} onClick={() => setView('leads')}>
-              Leads
+              Clientes
             </button>
+            {/* Vista de "Clientes" (clientes_consultor) oculta a solicitud del usuario.
+                Se conserva en el código para reactivarla más adelante si hace falta.
             <button type="button" className={`advisor-nav-tab ${view === 'clientes_consultor' || view === 'agregar_cliente' ? 'active' : ''}`} onClick={() => setView('clientes_consultor')}>
               Clientes
             </button>
+            */}
             <button type="button" className={`advisor-nav-tab ${view === 'historico_clientes' ? 'active' : ''}`} onClick={() => setView('historico_clientes')}>
               Historico
             </button>
@@ -2903,33 +2956,29 @@ const AdvisorPortal = () => {
           <>
             <header className="advisor-header">
               <div>
-                <span className="advisor-kicker">Control de leads</span>
+                <span className="advisor-kicker">Gestión de clientes</span>
                 <h1 className="advisor-title">Hola, {profile.nombre}</h1>
                 <p className="advisor-copy">
-                  Revisa, aprueba o rechaza los leads de la landing y asígnales sesión con Google Meet.
+                  Revisa, agenda o rechaza clientes de la landing y da de alta clientes manualmente cuando lo necesites.
                 </p>
               </div>
               <div className="advisor-header-actions">
                 <button
-                  className="advisor-icon-btn"
+                  className="advisor-submit"
                   type="button"
-                  onClick={async () => {
-                    setRefreshing(true);
-                    try { await loadLeads(); await loadStats(); }
-                    finally { setRefreshing(false); }
-                  }}
-                  disabled={refreshing || loading}
-                  aria-label="Actualizar leads"
-                  title="Actualizar"
+                  onClick={() => setView('agregar_cliente')}
                 >
-                  <span className={refreshing ? 'icon-spin' : ''} aria-hidden><IcoRefresh /></span>
-                  <span>Actualizar</span>
+                  + Agregar cliente
                 </button>
+                <span className="advisor-auto-refresh" title="La lista se actualiza automáticamente cada 3 segundos" aria-live="polite">
+                  <span className={refreshing ? 'icon-spin' : ''} aria-hidden><IcoRefresh /></span>
+                  <span>Auto · 3 s</span>
+                </span>
               </div>
             </header>
 
             <div className="advisor-stats">
-              {(['pendiente', 'aprobado', 'sesion_agendada', 'rechazado'] as LeadEstado[]).map((e) => (
+              {(['pendiente', 'sesion_agendada', 'rechazado'] as LeadEstado[]).map((e) => (
                 <button
                   key={e}
                   type="button"
@@ -2957,11 +3006,11 @@ const AdvisorPortal = () => {
                     placeholder="Buscar por nombre, email, empresa o teléfono…"
                     value={leadsSearch}
                     onChange={(e) => setLeadsSearch(e.target.value)}
-                    aria-label="Buscar leads"
+                    aria-label="Buscar clientes"
                   />
                 </div>
                 <div className="advisor-filters">
-                  {(['pendiente', 'aprobado', 'sesion_agendada', 'rechazado'] as LeadEstado[]).map((estado) => (
+                  {(['pendiente', 'sesion_agendada', 'rechazado'] as LeadEstado[]).map((estado) => (
                     <button
                       key={estado}
                       type="button"
@@ -3307,10 +3356,10 @@ const AdvisorPortal = () => {
                 <p className="advisor-copy">Consulta clientes agregados manualmente por el equipo y registra nuevos clientes no organicos.</p>
               </div>
               <div className="advisor-header-actions">
-                <button className="advisor-icon-btn" type="button" onClick={loadManualClients} aria-label="Actualizar clientes">
-                  <IcoRefresh />
-                  <span>Actualizar</span>
-                </button>
+                <span className="advisor-auto-refresh" title="La lista se actualiza automáticamente cada 3 segundos" aria-live="polite">
+                  <span aria-hidden><IcoRefresh /></span>
+                  <span>Auto · 3 s</span>
+                </span>
                 <button className="advisor-submit" type="button" onClick={() => setView('agregar_cliente')}>+ Agregar cliente</button>
               </div>
             </header>
@@ -3637,10 +3686,10 @@ const AdvisorPortal = () => {
                 <p className="advisor-copy">Consulta clientes y leads archivados desde el portal.</p>
               </div>
               <div className="advisor-header-actions">
-                <button className="advisor-icon-btn" type="button" onClick={loadClientHistory} aria-label="Actualizar historico">
-                  <IcoRefresh />
-                  <span>Actualizar</span>
-                </button>
+                <span className="advisor-auto-refresh" title="La lista se actualiza automáticamente cada 3 segundos" aria-live="polite">
+                  <span aria-hidden><IcoRefresh /></span>
+                  <span>Auto · 3 s</span>
+                </span>
               </div>
             </header>
 
@@ -3668,6 +3717,14 @@ const AdvisorPortal = () => {
                         Reactivar cliente
                       </button>
                     )}
+                    <button
+                      type="button"
+                      className="advisor-action advisor-danger"
+                      disabled={loading}
+                      onClick={() => setConfirmDeleteHistory(selectedHistory)}
+                    >
+                      Eliminar registro
+                    </button>
                   </div>
                 </div>
                 <form className="advisor-form advisor-client-edit-form is-readonly" noValidate>
@@ -3889,6 +3946,18 @@ const AdvisorPortal = () => {
                               Reactivar
                             </button>
                           )}
+                          <button
+                            type="button"
+                            className="advisor-client-expand advisor-danger"
+                            aria-label={`Eliminar registro de ${displayName}`}
+                            disabled={loading}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setConfirmDeleteHistory(item);
+                            }}
+                          >
+                            Eliminar
+                          </button>
                         </div>
                       </motion.article>
                     );
@@ -4044,10 +4113,10 @@ const AdvisorPortal = () => {
                   </p>
                 </div>
                 <div className="advisor-header-actions">
-                  <button className="advisor-icon-btn" type="button" onClick={loadCalendarSessions} disabled={calendarLoading} aria-label="Actualizar calendario">
+                  <span className="advisor-auto-refresh" title="La lista se actualiza automáticamente cada 3 segundos" aria-live="polite">
                     <span className={calendarLoading ? 'icon-spin' : ''} aria-hidden><IcoRefresh /></span>
-                    <span>Actualizar</span>
-                  </button>
+                    <span>Auto · 3 s</span>
+                  </span>
                 </div>
               </header>
 
@@ -4238,10 +4307,10 @@ const AdvisorPortal = () => {
                 <p className="advisor-copy">Gestiona consultores, accesos y permisos del portal.</p>
               </div>
               <div className="advisor-header-actions">
-                <button className="advisor-icon-btn" type="button" onClick={loadConsultores} aria-label="Actualizar consultores">
-                  <IcoRefresh />
-                  <span>Actualizar</span>
-                </button>
+                <span className="advisor-auto-refresh" title="La lista se actualiza automáticamente cada 3 segundos" aria-live="polite">
+                  <span aria-hidden><IcoRefresh /></span>
+                  <span>Auto · 3 s</span>
+                </span>
                 <button className="advisor-submit" type="button" onClick={() => setView('registrar')}>+ Nuevo consultor</button>
               </div>
             </header>
@@ -4602,6 +4671,21 @@ const AdvisorPortal = () => {
           const target = confirmRestoreHistory;
           setConfirmRestoreHistory(null);
           await performRestoreHistoryClient(target);
+        }}
+      />
+
+      <ConfirmDialog
+        open={!!confirmDeleteHistory}
+        title="Eliminar registro del historico"
+        description={confirmDeleteHistory ? `Seguro que deseas eliminar permanentemente a "${confirmDeleteHistory.nombre || confirmDeleteHistory.email}" del historico? Esta accion no se puede deshacer.` : ''}
+        confirmLabel="Eliminar"
+        loading={loading}
+        onCancel={() => setConfirmDeleteHistory(null)}
+        onConfirm={async () => {
+          if (!confirmDeleteHistory) return;
+          const target = confirmDeleteHistory;
+          setConfirmDeleteHistory(null);
+          await performDeleteHistory(target);
         }}
       />
 
