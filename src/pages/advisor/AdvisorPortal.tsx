@@ -3099,6 +3099,18 @@ const AdvisorPortal = () => {
                       bookedSlots.add(`${String(sd.getHours()).padStart(2, '0')}:${String(sd.getMinutes()).padStart(2, '0')}`);
                     }
                   }
+                  // Si la fecha elegida es hoy, marcar como ocupados los slots ya pasados.
+                  if (schDate === todayStr) {
+                    const now = new Date();
+                    const cutH = now.getHours();
+                    const cutM = now.getMinutes();
+                    for (const slot of SESSION_TIME_SLOTS) {
+                      const [hh, mm] = slot.split(':').map((n) => parseInt(n, 10));
+                      if (hh < cutH || (hh === cutH && mm <= cutM)) {
+                        bookedSlots.add(slot);
+                      }
+                    }
+                  }
 
                   return (
                     <motion.article
@@ -3175,6 +3187,8 @@ const AdvisorPortal = () => {
 
                       <div className="advisor-lead-actions">
                         <div className="advisor-lead-actions-primary">
+                          {/* Botones "Aprobar" y "Pasar a cliente" ocultos por ahora.
+                              Se mantienen sólo Agendar/Reprogramar y Rechazar.
                           {lead.estado === 'pendiente' && (
                             <button type="button" className="advisor-action advisor-action-primary" disabled={loadingAction} onClick={() => runLeadAction(() => handleApprove(lead.id))}>
                               <IcoCheck /> Aprobar
@@ -3190,11 +3204,12 @@ const AdvisorPortal = () => {
                               Pasar a cliente
                             </button>
                           )}
+                          */}
                           {lead.estado !== 'rechazado' && canScheduleOrganicAgendaLeads && (
-                            <button type="button" className="advisor-ghost" onClick={() => toggleSchedule(lead.id)}>
+                            <button type="button" className="advisor-action advisor-action-primary" onClick={() => toggleSchedule(lead.id)}>
                               {expandedLeadId === lead.id
                                 ? 'Cancelar'
-                                : <><IcoCalendar /> {lead.estado === 'sesion_agendada' ? 'Reprogramar' : 'Agendar'}</>}
+                                : <><IcoCalendar /> {lead.estado === 'sesion_agendada' ? 'Reprogramar' : 'Agendar sesión'}</>}
                             </button>
                           )}
                         </div>
