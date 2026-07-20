@@ -1966,6 +1966,88 @@ const AdvisorPortal = () => {
     if (!res.ok) throw new Error(payload?.error?.message || payload?.error || 'No fue posible guardar una asignacion.');
   };
 
+  // ── Alta rápida de lead pendiente (Asesoría Inicial 2026) ─────────
+  type NewLeadDraft = {
+    nombre: string;
+    apellido: string;
+    email: string;
+    telefono: string;
+    empresa: string;
+    puesto: string;
+    estado_region: string;
+    giro_negocio: string;
+    empleados: string;
+    regimen: string;
+    tema_asesoria: string;
+    necesidad_asesoria: string;
+    expectativas_asesoria: string;
+    situacion_especifica: string;
+  };
+  const emptyNewLead: NewLeadDraft = {
+    nombre: '', apellido: '', email: '', telefono: '',
+    empresa: '', puesto: '', estado_region: '', giro_negocio: '',
+    empleados: '', regimen: '', tema_asesoria: '',
+    necesidad_asesoria: '', expectativas_asesoria: '', situacion_especifica: '',
+  };
+  const [newLead, setNewLead] = useState<NewLeadDraft>(emptyNewLead);
+  const updateNewLead = (patch: Partial<NewLeadDraft>) => setNewLead((prev) => ({ ...prev, ...patch }));
+
+  const handleCreateLeadPending = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setClientError(null);
+    setClientSuccess(null);
+    if (!newLead.nombre.trim() || !newLead.email.trim()) {
+      setClientError('Nombre y correo son obligatorios.');
+      return;
+    }
+    try {
+      setLoading(true);
+      const notasExtras = [
+        newLead.empleados && `Tamaño empresa: ${newLead.empleados}`,
+        newLead.estado_region && `Estado / Región: ${newLead.estado_region}`,
+        newLead.giro_negocio && `Giro de negocio: ${newLead.giro_negocio}`,
+        newLead.regimen && `Régimen fiscal: ${newLead.regimen}`,
+        newLead.tema_asesoria && `Tema de asesoría: ${newLead.tema_asesoria}`,
+        newLead.necesidad_asesoria && `Motivación: ${newLead.necesidad_asesoria}`,
+        newLead.expectativas_asesoria && `Expectativas: ${newLead.expectativas_asesoria}`,
+        newLead.situacion_especifica && `Situación específica: ${newLead.situacion_especifica}`,
+      ].filter(Boolean).join('\n');
+
+      const fullName = [newLead.nombre.trim(), newLead.apellido.trim()].filter(Boolean).join(' ');
+      const body = {
+        name: fullName,
+        email: newLead.email.trim(),
+        phone: newLead.telefono.trim(),
+        company: newLead.empresa.trim() || undefined,
+        position: newLead.puesto.trim() || undefined,
+        services: newLead.tema_asesoria ? [newLead.tema_asesoria] : [],
+        source: 'web',
+        notes: notasExtras || undefined,
+      };
+      const res = await fetch(getAdminUrl('/api/sessions/bookings'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(payload?.error?.message || payload?.error || 'No fue posible registrar el cliente.');
+      }
+      toast.success('Cliente registrado. Aparece en pendiente para agendar sesión.');
+      setNewLead(emptyNewLead);
+      setActiveEstado('pendiente');
+      setView('leads');
+      await loadLeads(token, 'pendiente');
+      await loadStats();
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Error al registrar el cliente.';
+      toast.error(msg);
+      setClientError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleCreateManualClient = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setClientError(null);
@@ -3667,22 +3749,109 @@ const AdvisorPortal = () => {
               <div>
                 <span className="advisor-kicker">Nuevo cliente</span>
                 <h1 className="advisor-title">Agregar cliente</h1>
-                <p className="advisor-copy">Registra clientes no organicos y asigna los consultores que participan en cada servicio.</p>
+                <p className="advisor-copy">
+                  Registra un cliente manualmente con los datos de la Asesoría Inicial 2026.
+                  Aparecerá en la vista Clientes con estado <strong>pendiente</strong> para agendar sesión.
+                </p>
               </div>
             </header>
 
             <div className="advisor-board advisor-register-board">
-              <form className="advisor-form advisor-register-form" onSubmit={handleCreateManualClient} noValidate>
-                {catalogsError && <p className="advisor-error">{catalogsError}</p>}
-                {renderPdfClientFields(newClientDraft, updateNewClientDraft, false)}
-                {renderNewClientAssignmentsSection()}
-                {renderNewClientFilesSection()}
+              <form className="advisor-form advisor-quick-lead-form" onSubmit={handleCreateLeadPending} noValidate>
+                <div className="advisor-form-grid">
+                  <div className="advisor-field">
+                    <label htmlFor="nl-nombre">Nombre <span aria-hidden>*</span></label>
+                    <input id="nl-nombre" type="text" required value={newLead.nombre} onChange={(e) => updateNewLead({ nombre: e.target.value })} autoComplete="given-name" />
+                  </div>
+                  <div className="advisor-field">
+                    <label htmlFor="nl-apellido">Apellido</label>
+                    <input id="nl-apellido" type="text" value={newLead.apellido} onChange={(e) => updateNewLead({ apellido: e.target.value })} autoComplete="family-name" />
+                  </div>
+
+                  <div className="advisor-field">
+                    <label htmlFor="nl-email">Correo electrónico <span aria-hidden>*</span></label>
+                    <input id="nl-email" type="email" required value={newLead.email} onChange={(e) => updateNewLead({ email: e.target.value })} autoComplete="email" />
+                  </div>
+                  <div className="advisor-field">
+                    <label htmlFor="nl-tel">Número de teléfono</label>
+                    <input id="nl-tel" type="tel" value={newLead.telefono} onChange={(e) => updateNewLead({ telefono: e.target.value })} autoComplete="tel" placeholder="+52 55 ..." />
+                  </div>
+
+                  <div className="advisor-field">
+                    <label htmlFor="nl-empresa">Empresa</label>
+                    <input id="nl-empresa" type="text" value={newLead.empresa} onChange={(e) => updateNewLead({ empresa: e.target.value })} />
+                  </div>
+                  <div className="advisor-field">
+                    <label htmlFor="nl-puesto">Puesto</label>
+                    <input id="nl-puesto" type="text" value={newLead.puesto} onChange={(e) => updateNewLead({ puesto: e.target.value })} />
+                  </div>
+
+                  <div className="advisor-field">
+                    <label htmlFor="nl-estado">Estado / Región</label>
+                    <input id="nl-estado" type="text" value={newLead.estado_region} onChange={(e) => updateNewLead({ estado_region: e.target.value })} />
+                  </div>
+                  <div className="advisor-field">
+                    <label htmlFor="nl-giro">Giro de negocio</label>
+                    <input id="nl-giro" type="text" value={newLead.giro_negocio} onChange={(e) => updateNewLead({ giro_negocio: e.target.value })} />
+                  </div>
+
+                  <div className="advisor-field">
+                    <label htmlFor="nl-empleados">¿Cuál es el tamaño de tu empresa?</label>
+                    <select id="nl-empleados" value={newLead.empleados} onChange={(e) => updateNewLead({ empleados: e.target.value })}>
+                      <option value="">Selecciona...</option>
+                      <option value="1-10">1-10 empleados</option>
+                      <option value="11-50">11-50 empleados</option>
+                      <option value="51-200">51-200 empleados</option>
+                      <option value="201-500">201-500 empleados</option>
+                      <option value="501+">Más de 500 empleados</option>
+                    </select>
+                  </div>
+                  <div className="advisor-field">
+                    <label htmlFor="nl-regimen">Régimen en el que tributa</label>
+                    <select id="nl-regimen" value={newLead.regimen} onChange={(e) => updateNewLead({ regimen: e.target.value })}>
+                      <option value="">Selecciona...</option>
+                      <option value="Persona Física">Persona Física</option>
+                      <option value="Persona Moral">Persona Moral</option>
+                      <option value="RESICO">RESICO</option>
+                      <option value="Actividad Empresarial">Actividad Empresarial</option>
+                      <option value="Sueldos y Salarios">Sueldos y Salarios</option>
+                      <option value="Otro">Otro</option>
+                    </select>
+                  </div>
+
+                  <div className="advisor-field advisor-field-full">
+                    <label htmlFor="nl-tema">Tema de asesoría</label>
+                    <select id="nl-tema" value={newLead.tema_asesoria} onChange={(e) => updateNewLead({ tema_asesoria: e.target.value })}>
+                      <option value="">Selecciona...</option>
+                      <option value="Impuestos y planeación fiscal">Impuestos y planeación fiscal</option>
+                      <option value="Contabilidad y nómina">Contabilidad y nómina</option>
+                      <option value="Corporativo y derecho empresarial">Corporativo y derecho empresarial</option>
+                      <option value="Consultoría financiera">Consultoría financiera</option>
+                      <option value="Auditoría">Auditoría</option>
+                      <option value="Otro">Otro</option>
+                    </select>
+                  </div>
+
+                  <div className="advisor-field advisor-field-full">
+                    <label htmlFor="nl-motivo">¿Qué te motivó a solicitar esta asesoría?</label>
+                    <textarea id="nl-motivo" rows={2} value={newLead.necesidad_asesoria} onChange={(e) => updateNewLead({ necesidad_asesoria: e.target.value })} />
+                  </div>
+                  <div className="advisor-field advisor-field-full">
+                    <label htmlFor="nl-expect">¿Qué esperas obtener de esta asesoría?</label>
+                    <textarea id="nl-expect" rows={2} value={newLead.expectativas_asesoria} onChange={(e) => updateNewLead({ expectativas_asesoria: e.target.value })} />
+                  </div>
+                  <div className="advisor-field advisor-field-full">
+                    <label htmlFor="nl-sit">¿Hay alguna situación específica que te gustaría analizar durante la asesoría?</label>
+                    <textarea id="nl-sit" rows={3} value={newLead.situacion_especifica} onChange={(e) => updateNewLead({ situacion_especifica: e.target.value })} />
+                  </div>
+                </div>
+
                 <div className="advisor-register-actions">
                   <button type="submit" className="advisor-submit" disabled={loading}>
-                    {loading ? 'Guardando...' : 'Agregar cliente'}
+                    {loading ? 'Registrando...' : 'Registrar cliente'}
                   </button>
-                  <button type="button" className="advisor-ghost" onClick={() => setView('clientes_consultor')}>
-                    Ver clientes
+                  <button type="button" className="advisor-ghost" onClick={() => setView('leads')}>
+                    Cancelar
                   </button>
                 </div>
                 {clientError && <p className="advisor-error">{clientError}</p>}

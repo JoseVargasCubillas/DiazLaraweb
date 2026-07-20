@@ -4416,3 +4416,44 @@
   outline-offset: 2px;
   border-radius: 8px;
 }
+
+
+/* ── Quick lead form (Asesoría Inicial 2026) ─────────────── */
+.advisor-quick-lead-form { display: grid; gap: 24px; }
+.advisor-quick-lead-form .advisor-form-grid {
+  display: grid;
+  gap: 18px 22px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.advisor-quick-lead-form .advisor-field-full { grid-column: 1 / -1; }
+@media (max-width: 720px) {
+  .advisor-quick-lead-form .advisor-form-grid { grid-template-columns: 1fr; }
+}
+.advisor-quick-lead-form .advisor-field label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--c-text-secondary, #64748b);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.advisor-quick-lead-form .advisor-field input,
+.advisor-quick-lead-form .advisor-field select,
+.advisor-quick-lead-form .advisor-field textarea {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--c-border, rgba(148,163,184,0.3));
+  background: var(--c-surface, rgba(255,255,255,0.04));
+  color: var(--c-text-primary, #f8fafc);
+  font: inherit;
+  transition: border-color 180ms ease, background 180ms ease;
+}
+.advisor-quick-lead-form .advisor-field input:focus,
+.advisor-quick-lead-form .advisor-field select:focus,
+.advisor-quick-lead-form .advisor-field textarea:focus {
+  outline: none;
+  border-color: #818cf8;
+  background: color-mix(in srgb, #818cf8 6%, transparent);
+}

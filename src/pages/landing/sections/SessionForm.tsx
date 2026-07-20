@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { SERVICE_OPTIONS, SESSION_BENEFITS } from '../data';
+import React, { useEffect } from 'react';
+import { SESSION_BENEFITS } from '../data';
 import icon01 from '../../../assets/icon01.png';
 import icon02 from '../../../assets/icon02.png';
 import icon03 from '../../../assets/icon03.png';
@@ -9,231 +9,77 @@ const iconImages: Record<string, string> = {
   icon01, icon02, icon03, icon04,
 };
 
-interface FormState {
-  name: string;
-  email: string;
-  phone: string;
-  services: string[];
-}
+const HUBSPOT_SCRIPT_SRC = 'https://js.hsforms.net/forms/embed/developer/49215056.js';
+const HUBSPOT_FORM_ID = '06a5e57c-726d-4581-8978-a7ceea2b770d';
+const HUBSPOT_PORTAL_ID = '49215056';
 
-const EMPTY: FormState = {
-  name: '', email: '', phone: '', services: [],
-};
-
-const API_BASE_URL = (import.meta.env.VITE_API_URL as string | undefined)?.trim() || 'http://localhost:3000';
-const BOOKING_ENDPOINT = (import.meta.env.VITE_BOOKING_ENDPOINT as string | undefined)?.trim() || '/api/sessions/bookings';
-
-const getBookingUrl = () => {
-  if (BOOKING_ENDPOINT.startsWith('http://') || BOOKING_ENDPOINT.startsWith('https://')) {
-    return BOOKING_ENDPOINT;
-  }
-
-  const normalizedBase = API_BASE_URL.replace(/\/$/, '');
-  const normalizedPath = BOOKING_ENDPOINT.startsWith('/') ? BOOKING_ENDPOINT : `/${BOOKING_ENDPOINT}`;
-  return `${normalizedBase}${normalizedPath}`;
-};
-
+/**
+ * SessionForm — Asesoría Inicial 2026
+ * Renderiza el formulario embebido de HubSpot (Developer embed v4).
+ * El submit lo maneja HubSpot directamente; los leads llegan al CRM del cliente.
+ */
 const SessionForm: React.FC = () => {
-  const [form, setForm] = useState<FormState>(EMPTY);
-  const [submitted, setSubmitted] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-
-  const set = (key: keyof FormState, value: string) =>
-    setForm(prev => ({ ...prev, [key]: value }));
-
-  const toggleService = (s: string) =>
-    setForm(prev => ({
-      ...prev,
-      services: prev.services.includes(s)
-        ? prev.services.filter(x => x !== s)
-        : [...prev.services, s],
-    }));
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
-    if (form.services.length === 0) {
-      setSubmitError('Selecciona al menos un servicio para continuar.');
-      return;
-    }
-
-    setIsSubmitting(true);
-    setSubmitError(null);
-
-    try {
-      const response = await fetch(getBookingUrl(), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-       body: JSON.stringify({
-  name: form.name.trim(),
-  email: form.email.trim(),
-  phone: form.phone.trim(),
-  services: form.services,
-  source: 'landing-web',
-}),
-      });
-
-      if (!response.ok) {
-        const errorBody = await response.text();
-        throw new Error(errorBody || `Error ${response.status} al guardar la reserva.`);
-      }
-
-      setSubmitted(true);
-    } catch {
-      setSubmitError('No pudimos conectar con el backend. Verifica que tu API esté levantada y que VITE_API_URL/VITE_BOOKING_ENDPOINT sean correctos.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  if (submitted) {
-    return (
-      <section className="session-section">
-        <div className="session-success">
-          <div className="session-success-icon">✓</div>
-          <h2 className="session-success-title">¡Solicitud enviada!</h2>
-          <p className="session-success-text">
-            Tu solicitud se guardó correctamente y te contactaremos en menos de 24 hrs.
-          </p>
-          <button
-            onClick={() => {
-              setForm(EMPTY);
-              setSubmitError(null);
-              setSubmitted(false);
-            }}
-            className="session-success-btn"
-          >Nueva solicitud</button>
-        </div>
-      </section>
-    );
-  }
+  useEffect(() => {
+    // Carga el script de HubSpot una sola vez.
+    const existing = document.querySelector<HTMLScriptElement>(`script[src="${HUBSPOT_SCRIPT_SRC}"]`);
+    if (existing) return;
+    const script = document.createElement('script');
+    script.src = HUBSPOT_SCRIPT_SRC;
+    script.defer = true;
+    document.head.appendChild(script);
+  }, []);
 
   return (
     <section className="session-section">
       <div className="session-container">
         <div className="session-grid">
-          {/* Left: Form */}
+          {/* Left: HubSpot form */}
           <div className="session-form-wrapper">
             <h2 className="session-title">
-              Solicitar sesión<br />estratégica en Díaz Lara
+              Asesoría Inicial<br />2026 · Díaz Lara
             </h2>
             <p className="session-subtitle">
-              Completa tus datos y te contactaremos para confirmar fecha y hora.
+              Completa el siguiente formulario y agendaremos tu sesión estratégica.
             </p>
 
-            <div className="session-content-grid">
-              <form onSubmit={handleSubmit} className="session-form">
-                {/* Name & Email row */}
-                <div className="session-form-row">
-                  <div className="session-form-field">
-                    <label className="session-label">Nombre*</label>
-                    <input
-                      required
-                      value={form.name}
-                      onChange={e => set('name', e.target.value)}
-                      className="session-input"
-                    />
-                  </div>
-                  <div className="session-form-field">
-                    <label className="session-label">Correo*</label>
-                    <input
-                      required
-                      type="email"
-                      value={form.email}
-                      onChange={e => set('email', e.target.value)}
-                      className="session-input"
-                    />
-                  </div>
-                </div>
+            <div className="session-hubspot-wrapper">
+              <div
+                className="hs-form-html"
+                data-region="na1"
+                data-form-id={HUBSPOT_FORM_ID}
+                data-portal-id={HUBSPOT_PORTAL_ID}
+              />
+            </div>
+          </div>
 
-                {/* Phone */}
-                <div className="session-form-field">
-                  <label className="session-label">Teléfono*</label>
-                  <div className="session-phone-row">
-                    <div className="session-phone-prefix">
-                      <span className="session-phone-flag">MX México</span>
-                      <span className="session-phone-code">+52</span>
-                    </div>
-                    <input
-                      required
-                      type="tel"
-                      value={form.phone}
-                      onChange={e => set('phone', e.target.value)}
-                      className="session-input session-phone-input"
-                    />
-                  </div>
-                </div>
-
-                {/* Services */}
-                <div className="session-form-field">
-                  <label className="session-label">
-                    ¿Qué servicios necesitas? <span className="session-label-hint">(puedes elegir varios)</span>
-                  </label>
-                  <div className="session-services-grid">
-                    {SERVICE_OPTIONS.map(s => {
-                      const checked = form.services.includes(s);
-                      return (
-                        <label key={s} className={`session-checkbox ${checked ? 'checked' : ''}`}>
-                          <div className="session-checkbox-box">
-                            {checked && <span>✓</span>}
-                          </div>
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={() => toggleService(s)}
-                            style={{ display: 'none' }}
-                          />
-                          <span className="session-checkbox-label">{s}</span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Submit */}
-                <button type="submit" className="session-submit" disabled={isSubmitting}>
-                  {isSubmitting ? 'Enviando solicitud...' : 'Reserva tu videollamada'}
-                </button>
-                {submitError && <p className="session-form-error">{submitError}</p>}
-              </form>
-
-              {/* Right: Info Panel */}
-              <div className="session-info-wrapper">
-                <div className="session-info-panel">
-                  <div className="session-info-header">
-                    <span className="session-info-label">SESIÓN ESTRATÉGICA GRATUITA</span>
-                    <span className="session-info-time">15 MIN</span>
-                  </div>
-
-                  <div className="session-info-content">
-                    <h3 className="session-info-title">Lo que obtienes en tu primera llamada:</h3>
-
-                    <div className="session-benefits">
-                      {SESSION_BENEFITS.map((b, i) => (
-                        <div key={i} className="session-benefit">
-                          <img src={iconImages[b.icon]} alt="" className="session-benefit-icon" />
-                          <div className="session-benefit-text">
-                            <div className="session-benefit-title">{b.title}</div>
-                            <div className="session-benefit-desc">{b.desc}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    <p className="session-info-note">
-                      Esta sesión es de carácter informativo y exploratorio, por lo que no constituye una asesoría fiscal, legal o financiera personalizada.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="session-info-footer">
-                  Tus datos se envían de forma segura al sistema.<br />
-                  Confirmamos en menos de 24 hrs.
-                </div>
+          {/* Right: Benefits panel */}
+          <div className="session-info-wrapper">
+            <div className="session-info-card">
+              <div className="session-info-header">
+                <h3 className="session-info-title">Qué obtendrás en esta sesión</h3>
+                <p className="session-info-subtitle">
+                  30 min para entender tu operación y proponerte el mejor siguiente paso.
+                </p>
               </div>
+              <div className="session-benefits">
+                {SESSION_BENEFITS.map((b) => (
+                  <div key={b.title} className="session-benefit">
+                    <img src={iconImages[b.icon]} alt="" className="session-benefit-icon" />
+                    <div>
+                      <div className="session-benefit-title">{b.title}</div>
+                      <div className="session-benefit-desc">{b.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="session-info-note">
+                Esta sesión es de carácter informativo y exploratorio, por lo que no
+                constituye una asesoría fiscal, legal o financiera personalizada.
+              </p>
+            </div>
+            <div className="session-info-footer">
+              Tus datos se envían de forma segura al CRM de Díaz Lara.<br />
+              Confirmamos en menos de 24 hrs.
             </div>
           </div>
         </div>

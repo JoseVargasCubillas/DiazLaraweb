@@ -2030,3 +2030,39 @@
     gap: 12px;
   }
 }
+
+
+/* ── HubSpot embed wrapper ─────────────────────────────── */
+.session-hubspot-wrapper {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  padding: 8px;
+  min-height: 400px;
+  overflow: hidden;
+}
+.session-hubspot-wrapper .hs-form-html,
+.session-hubspot-wrapper .hs-form-frame {
+  width: 100%;
+  display: block;
+}
+/* Reset color de fondo del renderer HubSpot para que respete nuestro contenedor. */
+.session-hubspot-wrapper [data-hsfc-id="Renderer"] .hsfc-Step {
+  --hsf-background__background-color: transparent;
+  --hsf-background__padding: 12px;
+  --hsf-background__border-style: none;
+  --hsf-heading__color: #f8fafc;
+  --hsf-richtext__color: #cbd5e1;
+  --hsf-field-label__color: #e2e8f0;
+  --hsf-field-input__background-color: rgba(255,255,255,0.06);
+  --hsf-field-input__color: #f8fafc;
+  --hsf-field-input__border-color: rgba(148,163,184,0.35);
+  --hsf-field-textarea__background-color: rgba(255,255,255,0.06);
+  --hsf-field-textarea__color: #f8fafc;
+  --hsf-field-textarea__border-color: rgba(148,163,184,0.35);
+  --hsf-button__background-color: #6366f1;
+  --hsf-button__color: #ffffff;
+  --hsf-button__border-radius: 10px;
+  --hsf-button__font-weight: 600;
+  --hsf-button--hover__background-color: #4f46e5;
+}
