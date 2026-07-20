@@ -2046,23 +2046,56 @@
   width: 100%;
   display: block;
 }
-/* Reset color de fondo del renderer HubSpot para que respete nuestro contenedor. */
+/* Tokens del renderer HubSpot — texto oscuro para asegurar contraste en fondo claro. */
 .session-hubspot-wrapper [data-hsfc-id="Renderer"] .hsfc-Step {
-  --hsf-background__background-color: transparent;
-  --hsf-background__padding: 12px;
+  --hsf-background__background-color: #ffffff;
+  --hsf-background__padding: 20px;
   --hsf-background__border-style: none;
-  --hsf-heading__color: #f8fafc;
-  --hsf-richtext__color: #cbd5e1;
-  --hsf-field-label__color: #e2e8f0;
-  --hsf-field-input__background-color: rgba(255,255,255,0.06);
-  --hsf-field-input__color: #f8fafc;
-  --hsf-field-input__border-color: rgba(148,163,184,0.35);
-  --hsf-field-textarea__background-color: rgba(255,255,255,0.06);
-  --hsf-field-textarea__color: #f8fafc;
-  --hsf-field-textarea__border-color: rgba(148,163,184,0.35);
+  --hsf-background__border-radius: 12px;
+  --hsf-heading__color: #0f172a;
+  --hsf-richtext__color: #334155;
+  --hsf-field-label__color: #0f172a;
+  --hsf-field-description__color: #475569;
+  --hsf-field-footer__color: #475569;
+  --hsf-field-input__color: #0f172a;
+  --hsf-field-input__background-color: #f8fafc;
+  --hsf-field-input__border-color: #cbd5e1;
+  --hsf-field-input__placeholder-color: #64748b;
+  --hsf-field-textarea__color: #0f172a;
+  --hsf-field-textarea__background-color: #f8fafc;
+  --hsf-field-textarea__border-color: #cbd5e1;
+  --hsf-field-textarea__placeholder-color: #64748b;
+  --hsf-field-checkbox__color: #0f172a;
+  --hsf-field-checkbox__background-color: #ffffff;
+  --hsf-field-checkbox__border-color: #cbd5e1;
+  --hsf-field-radio__color: #0f172a;
+  --hsf-field-radio__background-color: #ffffff;
+  --hsf-field-radio__border-color: #cbd5e1;
   --hsf-button__background-color: #6366f1;
   --hsf-button__color: #ffffff;
   --hsf-button__border-radius: 10px;
   --hsf-button__font-weight: 600;
   --hsf-button--hover__background-color: #4f46e5;
+}
+/* Refuerzos por si HubSpot ignora alguna variable en su markup interno. */
+.session-hubspot-wrapper [data-hsfc-id="Renderer"] .hsfc-Heading,
+.session-hubspot-wrapper [data-hsfc-id="Renderer"] .hsfc-FieldLabel,
+.session-hubspot-wrapper [data-hsfc-id="Renderer"] .hsfc-FieldLabel span {
+  color: #0f172a !important;
+}
+.session-hubspot-wrapper [data-hsfc-id="Renderer"] .hsfc-RichText,
+.session-hubspot-wrapper [data-hsfc-id="Renderer"] .hsfc-RichText * {
+  color: #334155 !important;
+}
+.session-hubspot-wrapper [data-hsfc-id="Renderer"] input.hsfc-TextInput,
+.session-hubspot-wrapper [data-hsfc-id="Renderer"] textarea,
+.session-hubspot-wrapper [data-hsfc-id="Renderer"] select {
+  color: #0f172a !important;
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+}
+.session-hubspot-wrapper [data-hsfc-id="Renderer"] input.hsfc-TextInput::placeholder,
+.session-hubspot-wrapper [data-hsfc-id="Renderer"] textarea::placeholder {
+  color: #94a3b8 !important;
+  opacity: 1;
 }
