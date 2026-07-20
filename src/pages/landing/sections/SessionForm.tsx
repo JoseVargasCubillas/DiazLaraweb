@@ -54,24 +54,26 @@ const SessionForm: React.FC = () => {
 
           {/* Right: Benefits panel */}
           <div className="session-info-wrapper">
-            <div className="session-info-card">
-              <div className="session-info-header">
-                <span className="session-info-label">Beneficios</span>
+            <div className="session-info-card session-info-card-light">
+              <div className="session-info-header session-info-header-light">
+                <h3 className="session-info-title-dark">Qué obtendrás en esta sesión</h3>
+                <p className="session-info-subtitle-dark">
+                  30 min para entender tu operación y proponerte el mejor siguiente paso.
+                </p>
               </div>
-              <div className="session-info-content">
-                <h3 className="session-info-title">Qué obtendrás en esta sesión</h3>
+              <div className="session-info-content session-info-content-light">
                 <div className="session-benefits">
                   {SESSION_BENEFITS.map((b) => (
                     <div key={b.title} className="session-benefit">
                       <img src={iconImages[b.icon]} alt="" className="session-benefit-icon" />
                       <div className="session-benefit-text">
-                        <div className="session-benefit-title">{b.title}</div>
-                        <div className="session-benefit-desc">{b.desc}</div>
+                        <div className="session-benefit-title-dark">{b.title}</div>
+                        <div className="session-benefit-desc-dark">{b.desc}</div>
                       </div>
                     </div>
                   ))}
                 </div>
-                <p className="session-info-note">
+                <p className="session-info-note-dark">
                   Esta sesión es de carácter informativo y exploratorio, por lo que no
                   constituye una asesoría fiscal, legal o financiera personalizada.
                 </p>

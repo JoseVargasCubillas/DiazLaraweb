@@ -2099,3 +2099,83 @@
   color: #94a3b8 !important;
   opacity: 1;
 }
+
+
+/* ── Session info panel (modo claro, texto oscuro) ─────── */
+.session-info-card-light {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 14px -6px rgba(15, 23, 42, 0.12);
+}
+.session-info-header-light {
+  padding: 24px 24px 8px;
+  background: #ffffff;
+}
+.session-info-content-light {
+  background: #ffffff;
+  padding: 12px 24px 24px;
+}
+.session-info-title-dark {
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 8px;
+  line-height: 1.25;
+}
+.session-info-subtitle-dark {
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  color: #475569;
+  margin: 0;
+  line-height: 1.5;
+}
+.session-info-content-light .session-benefits {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-top: 8px;
+}
+.session-benefit-title-dark {
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 4px;
+}
+.session-benefit-desc-dark {
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 12.5px;
+  color: #475569;
+  line-height: 1.5;
+}
+.session-info-note-dark {
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 11.5px;
+  font-style: italic;
+  color: #64748b;
+  line-height: 1.55;
+  margin: 20px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+}
+
+/* ── Refuerzo de inputs HubSpot para que sean visibles ─── */
+.session-hubspot-wrapper [data-hsfc-id="Renderer"] input.hsfc-TextInput,
+.session-hubspot-wrapper [data-hsfc-id="Renderer"] textarea,
+.session-hubspot-wrapper [data-hsfc-id="Renderer"] select {
+  border: 1.5px solid #94a3b8 !important;
+  background-color: #ffffff !important;
+  min-height: 42px;
+  padding: 10px 12px !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+.session-hubspot-wrapper [data-hsfc-id="Renderer"] input.hsfc-TextInput:focus,
+.session-hubspot-wrapper [data-hsfc-id="Renderer"] textarea:focus,
+.session-hubspot-wrapper [data-hsfc-id="Renderer"] select:focus {
+  border-color: #6366f1 !important;
+  outline: 3px solid rgba(99, 102, 241, 0.18) !important;
+  outline-offset: 0 !important;
+}
