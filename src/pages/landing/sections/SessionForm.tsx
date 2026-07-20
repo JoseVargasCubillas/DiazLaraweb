@@ -56,26 +56,26 @@ const SessionForm: React.FC = () => {
           <div className="session-info-wrapper">
             <div className="session-info-card">
               <div className="session-info-header">
+                <span className="session-info-label">Beneficios</span>
+              </div>
+              <div className="session-info-content">
                 <h3 className="session-info-title">Qué obtendrás en esta sesión</h3>
-                <p className="session-info-subtitle">
-                  30 min para entender tu operación y proponerte el mejor siguiente paso.
+                <div className="session-benefits">
+                  {SESSION_BENEFITS.map((b) => (
+                    <div key={b.title} className="session-benefit">
+                      <img src={iconImages[b.icon]} alt="" className="session-benefit-icon" />
+                      <div className="session-benefit-text">
+                        <div className="session-benefit-title">{b.title}</div>
+                        <div className="session-benefit-desc">{b.desc}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="session-info-note">
+                  Esta sesión es de carácter informativo y exploratorio, por lo que no
+                  constituye una asesoría fiscal, legal o financiera personalizada.
                 </p>
               </div>
-              <div className="session-benefits">
-                {SESSION_BENEFITS.map((b) => (
-                  <div key={b.title} className="session-benefit">
-                    <img src={iconImages[b.icon]} alt="" className="session-benefit-icon" />
-                    <div>
-                      <div className="session-benefit-title">{b.title}</div>
-                      <div className="session-benefit-desc">{b.desc}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <p className="session-info-note">
-                Esta sesión es de carácter informativo y exploratorio, por lo que no
-                constituye una asesoría fiscal, legal o financiera personalizada.
-              </p>
             </div>
             <div className="session-info-footer">
               Tus datos se envían de forma segura al CRM de Díaz Lara.<br />
